@@ -233,7 +233,7 @@ def calcular_rachas(df):
     )
 
 # ─────────────────────────────────────────────
-# SIDEBAR
+# SIDEBAR (VERSIÓN CORREGIDA)
 # ─────────────────────────────────────────────
 
 with st.sidebar:
@@ -246,14 +246,25 @@ with st.sidebar:
     try:
         jugadores, partidos, partido_jugadores = cargar_datos()
         df_completo = construir_df(jugadores, partidos, partido_jugadores)
+        
+        # OBTENER TEMPORADAS DE FORMA SEGURA
+        temporadas = ["Todas"]
+        if 'temporada' in df_completo.columns:
+            temporadas_validas = sorted(df_completo["temporada"].dropna().unique())
+            temporadas += [t for t in temporadas_validas if pd.notna(t) and str(t).strip()]
+        
+        temporada_sel = st.selectbox("📅 Temporada", temporadas)
+        
+        # FILTRADO SEGURO
+        if temporada_sel == "Todas":
+            df = df_completo
+        else:
+            df_filtrado = df_completo[df_completo["temporada"] == temporada_sel]
+            df = df_filtrado if len(df_filtrado) > 0 else df_completo
+            
     except Exception as e:
-        st.error(f"❌ Error cargando datos: {e}\n\n**Verifica que los archivos estén en `/data/`**")
+        st.error(f"❌ Error cargando datos: {e}")
         st.stop()
-
-    temporadas = ["Todas"] + sorted(df_completo["temporada"].unique().tolist())
-    temporada_sel = st.selectbox("📅 Temporada", temporadas)
-
-    df = df_completo if temporada_sel == "Todas" else df_completo[df_completo["temporada"] == temporada_sel]
 
     st.divider()
     st.markdown("**🧭 Navegación**")
@@ -263,9 +274,11 @@ with st.sidebar:
         label_visibility="collapsed"
     )
     st.divider()
-    total_partidos = df["id_partido"].nunique()
-    total_jornadas = df["id_jornada"].nunique()
-    st.caption(f"🗓️ Jornadas: **{total_jornadas}** · Partidos: **{total_partidos}**")
+    
+    if not df.empty:
+        col1, col2 = st.columns(2)
+        col1.metric("📊 Partidos", df["id_partido"].nunique())
+        col2.metric("🗓️ Jornadas", df["id_jornada"].nunique())
 
 # ─────────────────────────────────────────────
 # CÁLCULOS GLOBALES
@@ -679,51 +692,3 @@ elif seccion == "📊 Gráficas":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
-
-# ─────────────────────────────────────────────
-# SIDEBAR (VERSIÓN CORREGIDA)
-# ─────────────────────────────────────────────
-
-with st.sidebar:
-    st.markdown("""
-    <p class="main-title">🎾 GUIMANETA</p>
-    <p class="sub-title">LIGA DE PÁDEL · PANEL ESTADÍSTICO</p>
-    """, unsafe_allow_html=True)
-    st.divider()
-
-    try:
-        jugadores, partidos, partido_jugadores = cargar_datos()
-        df_completo = construir_df(jugadores, partidos, partido_jugadores)
-        
-        # OBTENER TEMPORADAS DE FORMA SEGURA
-        temporadas = ["Todas"]
-        if 'temporada' in df_completo.columns:
-            temporadas_validas = sorted(df_completo["temporada"].dropna().unique())
-            temporadas += [t for t in temporadas_validas if pd.notna(t) and str(t).strip()]
-        
-        temporada_sel = st.selectbox("📅 Temporada", temporadas)
-        
-        # FILTRADO SEGURO
-        if temporada_sel == "Todas":
-            df = df_completo
-        else:
-            df_filtrado = df_completo[df_completo["temporada"] == temporada_sel]
-            df = df_filtrado if len(df_filtrado) > 0 else df_completo
-            
-    except Exception as e:
-        st.error(f"❌ Error cargando datos: {e}")
-        st.stop()
-
-    st.divider()
-    st.markdown("**🧭 Navegación**")
-    seccion = st.radio(
-        label="",
-        options=["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"],
-        label_visibility="collapsed"
-    )
-    st.divider()
-    
-    if not df.empty:
-        col1, col2 = st.columns(2)
-        col1.metric("📊 Partidos", df["id_partido"].nunique())
-        col2.metric("🗓️ Jornadas", df["id_jornada"].nunique())
