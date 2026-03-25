@@ -72,6 +72,13 @@ def cargar_datos(base_path="data/"):
 def construir_df(jugadores, partidos, partido_jugadores):
     print("🔍 DEBUG: Construyendo DF CORREGIDO...")
 
+    # 🔑 CREAR ID ÚNICO GLOBAL (clave para evitar colisiones)
+    partidos = partidos.copy()
+    partido_jugadores = partido_jugadores.copy()
+
+    partidos["id_partido"] = partidos["id_partido"].astype(str) + "_" + partidos["temporada"].astype(str)
+    partido_jugadores["id_partido"] = partido_jugadores["id_partido"].astype(str) + "_" + partido_jugadores["temporada"].astype(str)
+
     # LIMPIAR DUPLICADOS
     partidos_clean = partidos.drop_duplicates(subset=['id_partido'])
     pj_clean = partido_jugadores.drop_duplicates()
