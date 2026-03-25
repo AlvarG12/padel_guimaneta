@@ -491,15 +491,15 @@ elif seccion == "👤 Perfil Jugador":
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "⚔️ Enfrentamientos":
     st.markdown("## ⚔️ Enfrentamientos Directos")
-
+ 
     tab1, tab2 = st.tabs(["🔍 Buscar enfrentamiento", "🗺️ Heatmap completo"])
-
+ 
     with tab1:
         jugadores_lista = sorted(df["nombre"].unique())
         col1, col2 = st.columns(2)
         j1 = col1.selectbox("Jugador 1", jugadores_lista, key="enf_j1")
         j2 = col2.selectbox("Jugador 2", [j for j in jugadores_lista if j != j1], key="enf_j2")
-
+ 
         if not df_enf.empty:
             fila = df_enf[
                 ((df_enf["jugador1"] == j1) & (df_enf["jugador2"] == j2)) |
@@ -515,7 +515,7 @@ elif seccion == "⚔️ Enfrentamientos":
                     v1, v2 = int(r["victorias_jugador2"]), int(r["victorias_jugador1"])
                     jg1, jg2 = int(r["juegos_ganados_jugador2"]), int(r["juegos_ganados_jugador1"])
                     p1_name, p2_name = j1, j2
-
+ 
                 total = int(r["partidos_totales"])
                 st.divider()
                 c1, c2, c3 = st.columns([2, 1, 2])
@@ -529,17 +529,51 @@ elif seccion == "⚔️ Enfrentamientos":
                 c3.metric("Juegos ganados", jg2)
             else:
                 st.info("Estos jugadores no se han enfrentado todavía.")
-
+ 
         st.divider()
         st.markdown("#### 📋 Tabla completa de enfrentamientos")
         if not df_enf.empty:
-            tabla_enf = df_enf[["jugador1", "jugador2", "partidos_totales",
-                                "victorias_jugador1", "victorias_jugador2",
-                                "pct_j1", "pct_j2"]].copy()
-            tabla_enf.columns = ["Jugador 1", "Jugador 2", "Partidos",
-                                  "V Jugador 1", "V Jugador 2", "% J1", "% J2"]
-            st.dataframe(tabla_enf, use_container_width=True, height=770)
+            
+            df_enf_sorted = df_enf.copy()
 
+            # Asegurar que jugador1 es el de mejor %
+            cond = df_enf_sorted["pct_j2"] > df_enf_sorted["pct_j1"]
+
+            cols_swap = [
+                ("jugador1", "jugador2"),
+                ("victorias_jugador1", "victorias_jugador2"),
+                ("juegos_ganados_jugador1", "juegos_ganados_jugador2"),
+                ("pct_j1", "pct_j2"),
+            ]
+
+            for col1, col2 in cols_swap:
+                df_enf_sorted.loc[cond, [col1, col2]] = df_enf_sorted.loc[cond, [col2, col1]].values
+
+            # Orden por enfrentamientos más igualados
+            df_enf_sorted["pct_diff"] = abs(
+                df_enf_sorted["pct_j1"] - df_enf_sorted["pct_j2"]
+            )
+
+            df_enf_sorted = df_enf_sorted.sort_values(by="pct_diff", ascending=False)
+            df_enf_sorted = df_enf_sorted.drop(columns=["pct_diff"])
+
+            tabla_enf = df_enf_sorted[[
+                "jugador1", "jugador2", "partidos_totales",
+                "victorias_jugador1", "victorias_jugador2",
+                "pct_j1", "pct_j2"
+            ]].copy()
+
+            tabla_enf.columns = [
+                "Jugador 1", "Jugador 2", "Partidos",
+                "V Jugador 1", "V Jugador 2", "% J1", "% J2"
+            ]
+
+            st.dataframe(
+                tabla_enf,
+                use_container_width=True,
+                height=770
+            )
+ 
     with tab2:
         if not df_enf.empty:
             jugadores_unicos = sorted(df["nombre"].unique())
@@ -550,7 +584,7 @@ elif seccion == "⚔️ Enfrentamientos":
                     matriz.loc[j1n, j2n] = r["victorias_jugador1"]
                     matriz.loc[j2n, j1n] = r["victorias_jugador2"]
             np.fill_diagonal(matriz.values, np.nan)
-
+ 
             fig, ax = plt.subplots(figsize=(10, 8))
             fig.patch.set_facecolor("#0d1117")
             ax.set_facecolor("#161b22")
