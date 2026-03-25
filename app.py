@@ -18,108 +18,55 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
-# ESTILO VISUAL
+# SIDEBAR (VERSIÓN CORREGIDA)
 # ─────────────────────────────────────────────
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
+with st.sidebar:
+    st.markdown("""
+    <p class="main-title">🎾 GUIMANETA</p>
+    <p class="sub-title">LIGA DE PÁDEL · PANEL ESTADÍSTICO</p>
+    """, unsafe_allow_html=True)
+    st.divider()
 
-/* Fondo general */
-.stApp {
-    background: #0d1117;
-    color: #e6edf3;
-}
+    try:
+        jugadores, partidos, partido_jugadores = cargar_datos()
+        df_completo = construir_df(jugadores, partidos, partido_jugadores)
+        
+        # Verificar que temporada existe y obtener lista segura
+        if 'temporada' in df_completo.columns and not df_completo['temporada'].isna().all():
+            temporadas = ["Todas"] + sorted(df_completo["temporada"].dropna().unique().tolist())
+        else:
+            temporadas = ["Todas"]
+            st.warning("⚠️ No se detectaron temporadas - mostrando todos los datos")
+            
+        temporada_sel = st.selectbox("📅 Temporada", temporadas)
+        
+        # Filtrar datos de forma segura
+        if temporada_sel == "Todas" or temporada_sel not in df_completo["temporada"].values:
+            df = df_completo
+        else:
+            df = df_completo[df_completo["temporada"] == temporada_sel].copy()
+            
+    except Exception as e:
+        st.error(f"❌ Error cargando datos: {e}\n\n**Verifica que los archivos estén en `/data/`**")
+        st.stop()
 
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: #161b22;
-    border-right: 1px solid #30363d;
-}
-
-/* Títulos */
-h1, h2, h3 {
-    font-family: 'Oswald', sans-serif !important;
-    letter-spacing: 0.04em;
-}
-
-/* Métricas */
-[data-testid="metric-container"] {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 10px;
-    padding: 12px 16px;
-}
-
-/* Tabs */
-[data-baseweb="tab-list"] {
-    background: #161b22;
-    border-radius: 8px;
-    padding: 4px;
-    gap: 4px;
-}
-[data-baseweb="tab"] {
-    font-family: 'Oswald', sans-serif;
-    letter-spacing: 0.05em;
-    color: #8b949e !important;
-}
-[aria-selected="true"] {
-    background: #238636 !important;
-    color: #fff !important;
-    border-radius: 6px;
-}
-
-/* Dataframes */
-[data-testid="stDataFrame"] {
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-/* Header badge verde */
-.badge-verde {
-    display: inline-block;
-    background: #238636;
-    color: white;
-    font-family: 'Oswald', sans-serif;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    padding: 2px 10px;
-    border-radius: 20px;
-    margin-left: 8px;
-    vertical-align: middle;
-}
-
-/* Card jugador */
-.card-jugador {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 12px;
-}
-
-/* Logo title */
-.main-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.06em;
-    margin: 0;
-}
-.sub-title {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.85rem;
-    color: #8b949e;
-    margin-top: 2px;
-    letter-spacing: 0.04em;
-}
-</style>
-""", unsafe_allow_html=True)
+    st.divider()
+    st.markdown("**🧭 Navegación**")
+    seccion = st.radio(
+        label="",
+        options=["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"],
+        label_visibility="collapsed"
+    )
+    st.divider()
+    
+    # Métricas de resumen seguras
+    if not df.empty:
+        total_partidos = df["id_partido"].nunique()
+        total_jornadas = df["id_jornada"].nunique()
+        st.caption(f"🗓️ Jornadas: **{total_jornadas}** · Partidos: **{total_partidos}**")
+    else:
+        st.caption("📊 Sin datos disponibles")
 
 # ─────────────────────────────────────────────
 # CARGA DE DATOS (Adaptada específicamente a tus archivos)
@@ -160,7 +107,15 @@ def cargar_datos(base_path="data/"):
 
 @st.cache_data
 def construir_df(jugadores, partidos, partido_jugadores):
-    df = partido_jugadores.merge(jugadores, on="id_jugador").merge(partidos, on="id_partido")
+    # Merge asegurando que 'temporada' se mantenga
+    df = partido_jugadores.merge(jugadores, on="id_jugador")
+    df = df.merge(partidos, on="id_partido")
+    
+    # Verificar que 'temporada' existe después del merge
+    if 'temporada' not in df.columns:
+        st.error("❌ Columna 'temporada' no encontrada después del merge")
+        st.stop()
+    
     df["victoria"] = df["equipo"] == df["equipo_ganador"]
     df["juegos_ganados"] = df.apply(
         lambda x: x["juegos_equipo1"] if x["equipo"] == 1 else x["juegos_equipo2"], axis=1
