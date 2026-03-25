@@ -481,24 +481,47 @@ elif seccion == "📊 Detalle":
 
     st.divider()
 
-    # 🏆 CLASIFICACIÓN DE ESA JORNADA
+    # 🏆 CLASIFICACIÓN DE ESA JORNADA (SOLO ESA JORNADA)
     st.markdown("### 🏆 Clasificación de la jornada")
 
-    df_jornada = df[df["id_jornada"] <= jornada_sel].copy()
+    df_jornada_simple = df[df["id_jornada"] == jornada_sel].copy()
 
-    # reutilizamos tu lógica de clasificación
-    clasif_jornada = calcular_clasificacion(df_jornada)
+    clasif_simple = calcular_clasificacion(df_jornada_simple)
 
-    tabla_jornada = clasif_jornada[[
+    tabla_simple = clasif_simple[[
         "nombre", "partidos_jugados", "victorias", "derrotas",
         "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
         "porcentaje_victorias"
     ]].copy()
 
-    tabla_jornada.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V"]
+    tabla_simple.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V"]
 
     st.dataframe(
-        tabla_jornada.style
+        tabla_simple.style
+        .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
+        .format({"% V": "{:.2f}%"}),
+        use_container_width=True
+    )
+
+    st.divider()
+
+    # 🏆 CLASIFICACIÓN ACUMULADA HASTA ESA JORNADA
+    st.markdown("### 🏆 Clasificación acumulada")
+
+    df_jornada_acum = df[df["id_jornada"] <= jornada_sel].copy()
+
+    clasif_acum = calcular_clasificacion(df_jornada_acum)
+
+    tabla_acum = clasif_acum[[
+        "nombre", "partidos_jugados", "victorias", "derrotas",
+        "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
+        "porcentaje_victorias"
+    ]].copy()
+
+    tabla_acum.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V"]
+
+    st.dataframe(
+        tabla_acum.style
         .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
         .format({"% V": "{:.2f}%"}),
         use_container_width=True
