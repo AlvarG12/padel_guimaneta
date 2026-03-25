@@ -18,7 +18,7 @@ def quitar_acentos(texto):
 # CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="Liga Pádel Guimaneta",
+    page_title="Liga Padel Guimaneta",
     page_icon="🎾",
     layout="wide",
     initial_sidebar_state="expanded"
