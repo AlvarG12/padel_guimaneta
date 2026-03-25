@@ -250,8 +250,8 @@ def calcular_rachas(df):
 
 with st.sidebar:
     st.markdown("""
-    <p class="main-title">🎾 GUIMANETA</p>
-    <p class="sub-title">LIGA DE PÁDEL · PANEL ESTADÍSTICO</p>
+    <p class="main-title">🎾 PÁDEL GUIMANETA</p>
+    <p class="sub-title">LIGA DE PÁDEL - RESULTADOS</p>
     """, unsafe_allow_html=True)
     st.divider()
 
@@ -462,8 +462,14 @@ elif seccion == "👤 Perfil Jugador":
                                "Partidos": int(r["partidos_totales"]), "Mi %": pct})
         df_res = pd.DataFrame(resultado).sort_values("Mi %", ascending=False).reset_index(drop=True)
         st.dataframe(
-            df_res.style.background_gradient(subset=["Mi %"], cmap="RdYlGn", vmin=0, vmax=100),
-            use_container_width=True
+            df_res.style.background_gradient(
+                subset=["Mi %"],
+                cmap="RdYlGn",
+                vmin=0,
+                vmax=100
+            ),
+            use_container_width=True,
+            height=600
         )
  
     st.markdown("#### 🤝 Rendimiento con parejas")
@@ -481,8 +487,14 @@ elif seccion == "👤 Perfil Jugador":
             })
         df_rp = pd.DataFrame(resultado_p).sort_values("% Victorias", ascending=False).reset_index(drop=True)
         st.dataframe(
-            df_rp.style.background_gradient(subset=["% Victorias"], cmap="RdYlGn", vmin=0, vmax=100),
-            use_container_width=True
+            df_rp.style.background_gradient(
+                subset=["% Victorias"],
+                cmap="RdYlGn",
+                vmin=0,
+                vmax=100
+            ),
+            use_container_width=True,
+            height=600
         )
  
  
