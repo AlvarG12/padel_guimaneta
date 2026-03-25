@@ -415,11 +415,11 @@ if seccion == "🏆 Clasificación":
 
     # 🔥 FUNCIONES DE COLOR SUAVE TIPO GRADIENTE
     def color_top(nombre, rank):
-        if rank == 0:  # 🥇
+        if rank == 1:  # 🥇
             return "background-color: rgba(255, 215, 0, 0.15); color: #FFD700; font-weight: 600;"
-        elif rank == 1:  # 🥈
+        elif rank == 2:  # 🥈
             return "background-color: rgba(192, 192, 192, 0.12); color: #C0C0C0; font-weight: 600;"
-        elif rank == 2:  # 🥉
+        elif rank == 3:  # 🥉
             return "background-color: rgba(205, 127, 50, 0.12); color: #CD7F32; font-weight: 600;"
         return ""
 
