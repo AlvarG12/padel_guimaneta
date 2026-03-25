@@ -606,7 +606,19 @@ elif seccion == "🤝 Parejas":
     if not df_parejas.empty:
         col1, col2 = st.columns([2, 1])
         with col1:
-            tabla_parejas = df_parejas[[
+            df_parejas_sorted = df_parejas.copy()
+
+            # criterio de desempate
+            df_parejas_sorted["diff_juegos"] = (
+                df_parejas_sorted["juegos_ganados_juntos"] - df_parejas_sorted["juegos_perdidos_juntos"]
+            )
+
+            df_parejas_sorted = df_parejas_sorted.sort_values(
+                by=["porcentaje_victorias", "diff_juegos", "partidos_juntos"],
+                ascending=[False, False, False]
+            )
+
+            tabla_parejas = df_parejas_sorted[[
                 "jugador1", "jugador2", "partidos_juntos",
                 "victorias_juntos", "derrotas_juntos",
                 "juegos_ganados_juntos", "juegos_perdidos_juntos",
