@@ -536,23 +536,28 @@ elif seccion == "📊 Detalle":
         (df["id_jornada"] == jornada_sel)
     ].drop_duplicates(subset=["id_partido"])
 
-    for _, p in partidos_jornada.iterrows():
+    # Agrupar por partido
+    for partido_id, grupo in partidos_jornada.groupby("id_partido"):
 
-        equipo1 = p["jugador1_equipo1"] if "jugador1_equipo1" in p else p["equipo1"]
-        equipo2 = p["jugador1_equipo2"] if "jugador1_equipo2" in p else p["equipo2"]
+        # Obtener equipos
+        jugadores = grupo["nombre"].tolist()
 
-        # fallback por si no tienes esos nombres
-        if "jugadores_equipo1" in p and "jugadores_equipo2" in p:
-            eq1 = p["jugadores_equipo1"]
-            eq2 = p["jugadores_equipo2"]
-        else:
-            eq1 = equipo1
-            eq2 = equipo2
+        # Dividir en 2 equipos según equipo (0/1)
+        equipo1 = grupo[grupo["equipo"] == 1]["nombre"].tolist()
+        equipo2 = grupo[grupo["equipo"] == 2]["nombre"].tolist()
 
-        g1 = int(p["juegos_equipo1"])
-        g2 = int(p["juegos_equipo2"])
+        if not equipo1 or not equipo2:
+            continue
 
-        ganador = "equipo1" if p["equipo_ganador"] == 1 else "equipo2"
+        eq1 = " y ".join(equipo1)
+        eq2 = " y ".join(equipo2)
+
+        # Juegos
+        p_row = grupo.iloc[0]
+        g1 = int(p_row["juegos_equipo1"])
+        g2 = int(p_row["juegos_equipo2"])
+
+        ganador = "equipo1" if p_row["equipo_ganador"] == 1 else "equipo2"
 
         if ganador == "equipo1":
             texto_ganador = f"{eq1} ganan el partido"
@@ -560,7 +565,7 @@ elif seccion == "📊 Detalle":
             texto_ganador = f"{eq2} ganan el partido"
 
         st.markdown(
-            f"**{p['id_partido']}. {eq1} vs {eq2}: {g1}-{g2}**  \n"
+            f"**{partido_id}. {eq1} vs {eq2}: {g1}-{g2}**  \n"
             f"_{texto_ganador}_"
         )
 
