@@ -6,6 +6,13 @@ import matplotlib.patches as mpatches
 import seaborn as sns
 import itertools
 import os
+import unicodedata
+
+def quitar_acentos(texto):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', texto)
+        if unicodedata.category(c) != 'Mn'
+    )
 
 # ─────────────────────────────────────────────
 # CONFIG
@@ -375,7 +382,10 @@ if seccion == "🏆 Clasificación":
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "👤 Perfil Jugador":
     st.markdown("## 👤 Perfil de Jugador")
-    nombre_sel = st.selectbox("Selecciona jugador", sorted(clasificacion["nombre"].tolist()))
+    nombre_sel = st.selectbox(
+    "Selecciona jugador",
+    sorted(clasificacion["nombre"].tolist(), key=lambda x: quitar_acentos(x).lower())
+)
  
     fila = clasificacion[clasificacion["nombre"] == nombre_sel].iloc[0]
     pos = clasificacion.index[clasificacion["nombre"] == nombre_sel][0]
