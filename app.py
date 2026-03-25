@@ -23,30 +23,37 @@ st.set_page_config(
 
 @st.cache_data
 def cargar_datos(base_path="data/"):
-    # Cargar base de jugadores
+    print("🔍 DEBUG: Cargando datos...")
     jugadores = pd.read_csv(os.path.join(base_path, "jugadores.csv"))
+    print(f"✅ Jugadores cargados: {len(jugadores)} filas")
 
     def leer_temp(suffix, label):
         file_p = os.path.join(base_path, f"partidos_{suffix}.csv")
         file_pj = os.path.join(base_path, f"partido_jugadores_{suffix}.csv")
+        
+        print(f"🔍 Buscando: partidos_{suffix}.csv y partido_jugadores_{suffix}.csv")
         
         if os.path.exists(file_p) and os.path.exists(file_pj):
             p = pd.read_csv(file_p)
             pj = pd.read_csv(file_pj)
             p["temporada"] = label
             pj["temporada"] = label
+            print(f"✅ Temporada {label}: {len(p)} partidos, {len(pj)} PJ")
             return p, pj
-        return pd.DataFrame(), pd.DataFrame()
+        else:
+            print(f"❌ Archivos {suffix} NO encontrados")
+            return pd.DataFrame(), pd.DataFrame()
 
-    # Cargar las dos temporadas específicas que tienes
     p24, pj24 = leer_temp("24_25", "2024/25")
     p25, pj25 = leer_temp("25_26", "2025/26")
 
-    # Concatenar
     partidos = pd.concat([p24, p25], ignore_index=True)
     partido_jugadores = pd.concat([pj24, pj25], ignore_index=True)
+    
+    print(f"📊 Total: {len(partidos)} partidos, {len(partido_jugadores)} PJ")
+    print(f"🏷️ Temporadas en partidos: {partidos['temporada'].unique() if 'temporada' in partidos.columns else 'NO'}")
+    print(f"🏷️ Temporadas en PJ: {partido_jugadores['temporada'].unique() if 'temporada' in partido_jugadores.columns else 'NO'}")
 
-    # Calcular ganador si no existe
     if "equipo_ganador" not in partidos.columns:
         partidos["equipo_ganador"] = partidos.apply(
             lambda x: 1 if x["juegos_equipo1"] > x["juegos_equipo2"] else 2, axis=1
@@ -56,15 +63,27 @@ def cargar_datos(base_path="data/"):
 
 @st.cache_data
 def construir_df(jugadores, partidos, partido_jugadores):
-    # Merge asegurando que 'temporada' se mantenga
-    df = partido_jugadores.merge(jugadores, on="id_jugador")
-    df = df.merge(partidos, on="id_partido")
+    print("🔍 DEBUG: Construyendo DF...")
     
-    # Verificar que 'temporada' existe después del merge
+    # PASO 1: Merge PJ + JUGADORES
+    df1 = partido_jugadores.merge(jugadores, on="id_jugador", how='left')
+    print(f"📈 Merge 1 (PJ+JUGADORES): {len(df1)} filas")
+    print(f"🏷️ Temporada en df1: {'temporada' in df1.columns}")
+    
+    # PASO 2: Merge con PARTIDOS (aquí está el problema)
+    df = df1.merge(partidos, on="id_partido", how='left')
+    print(f"📈 Merge 2 (FINAL): {len(df)} filas")
+    print(f"🏷️ Columnas finales: {list(df.columns)}")
+    print(f"🏷️ Temporada existe: {'temporada' in df.columns}")
+    
+    # SI NO HAY TEMPORADA, LA RECUPERAMOS DEL PARTIDO_JUGADORES
     if 'temporada' not in df.columns:
-        st.error("❌ Columna 'temporada' no encontrada después del merge")
-        st.stop()
+        print("⚠️ RECUPERANDO TEMPORADA de partido_jugadores...")
+        df = df1.merge(partidos[['id_partido', 'equipo_ganador', 'juegos_equipo1', 'juegos_equipo2']], 
+                      on="id_partido", how='left')
+        df['temporada'] = df1['temporada']  # Forzar desde PJ
     
+    # CÁLCULOS
     df["victoria"] = df["equipo"] == df["equipo_ganador"]
     df["juegos_ganados"] = df.apply(
         lambda x: x["juegos_equipo1"] if x["equipo"] == 1 else x["juegos_equipo2"], axis=1
@@ -72,6 +91,8 @@ def construir_df(jugadores, partidos, partido_jugadores):
     df["juegos_perdidos"] = df.apply(
         lambda x: x["juegos_equipo2"] if x["equipo"] == 1 else x["juegos_equipo1"], axis=1
     )
+    
+    print(f"✅ DF final: {len(df)} filas, temporadas: {df['temporada'].unique()}")
     return df
 
 @st.cache_data
@@ -678,38 +699,35 @@ with st.sidebar:
         jugadores, partidos, partido_jugadores = cargar_datos()
         df_completo = construir_df(jugadores, partidos, partido_jugadores)
         
-        # Verificar que temporada existe y obtener lista segura
-        if 'temporada' in df_completo.columns and not df_completo['temporada'].isna().all():
-            temporadas = ["Todas"] + sorted(df_completo["temporada"].dropna().unique().tolist())
-        else:
-            temporadas = ["Todas"]
-            st.warning("⚠️ No se detectaron temporadas - mostrando todos los datos")
-            
+        # LÓGICA ROBUSTA PARA TEMPORADAS
+        temporadas = ["Todas"]
+        if 'temporada' in df_completo.columns:
+            temporadas_unicas = sorted(df_completo["temporada"].dropna().unique())
+            if len(temporadas_unicas) > 0:
+                temporadas += temporadas_unicas
+        
         temporada_sel = st.selectbox("📅 Temporada", temporadas)
         
-        # Filtrar datos de forma segura
-        if temporada_sel == "Todas" or temporada_sel not in df_completo["temporada"].values:
+        # FILTRADO SEGURO
+        if temporada_sel == "Todas":
             df = df_completo
         else:
-            df = df_completo[df_completo["temporada"] == temporada_sel].copy()
-            
+            df_filtrado = df_completo[df_completo["temporada"] == temporada_sel]
+            df = df_filtrado if not df_filtrado.empty else df_completo
+            if len(df) == 0:
+                st.warning("⚠️ Sin datos para la temporada seleccionada")
+                df = df_completo
+                
     except Exception as e:
-        st.error(f"❌ Error cargando datos: {e}\n\n**Verifica que los archivos estén en `/data/`**")
+        st.error(f"❌ Error: {str(e)}")
+        st.info("📁 Verifica que tienes estos archivos en `/data/`: jugadores.csv, partidos_24_25.csv, etc.")
         st.stop()
 
     st.divider()
     st.markdown("**🧭 Navegación**")
-    seccion = st.radio(
-        label="",
-        options=["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"],
-        label_visibility="collapsed"
-    )
-    st.divider()
+    seccion = st.radio("", ["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"])
     
-    # Métricas de resumen seguras
+    st.divider()
     if not df.empty:
-        total_partidos = df["id_partido"].nunique()
-        total_jornadas = df["id_jornada"].nunique()
-        st.caption(f"🗓️ Jornadas: **{total_jornadas}** · Partidos: **{total_partidos}**")
-    else:
-        st.caption("📊 Sin datos disponibles")
+        st.metric("📊 Partidos", df["id_partido"].nunique())
+        st.metric("🗓️ Jornadas", df["id_jornada"].nunique())
