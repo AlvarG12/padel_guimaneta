@@ -108,7 +108,7 @@ def calcular_clasificacion(df):
 
     clas["diferencia_juegos"] = clas["juegos_ganados"] - clas["juegos_perdidos"]
     clas["derrotas"] = clas["partidos_jugados"] - clas["victorias"]
-    clas["porcentaje_victorias"] = (clas["victorias"] / clas["partidos_jugados"] * 100).round(1)
+    clas["porcentaje_victorias"] = (clas["victorias"] / clas["partidos_jugados"] * 100).round(2)
     total_jornadas = df["id_jornada"].nunique()
     clas["jornadas"] = clas["jornadas_participadas"].astype(str) + "/" + str(total_jornadas)
     clas = clas.sort_values(
@@ -131,7 +131,7 @@ def calcular_ranking_por_jornada(df):
             juegos_perdidos=("juegos_perdidos", "sum"),
         ).reset_index()
         clas_j["diferencia_juegos"] = clas_j["juegos_ganados"] - clas_j["juegos_perdidos"]
-        clas_j["porcentaje_victorias"] = (clas_j["victorias"] / clas_j["partidos_jugados"] * 100).round(1)
+        clas_j["porcentaje_victorias"] = (clas_j["victorias"] / clas_j["partidos_jugados"] * 100).round(2)
         clas_j = clas_j.sort_values(
             by=["porcentaje_victorias", "diferencia_juegos", "juegos_ganados"], ascending=False
         )
@@ -261,7 +261,7 @@ with st.sidebar:
             st.stop()
 
         # Selector de temporada
-        temporada_sel = st.selectbox("📅 Temporada", temporadas)
+        temporada_sel = st.selectbox("📅 Temporada", temporadas, index=len(temporadas)-1)
 
         # Filtrado directo (SIEMPRE una temporada)
         df = df_completo[df_completo["temporada"] == temporada_sel].copy()
@@ -334,7 +334,7 @@ if seccion == "🏆 Clasificación":
         tabla.style
         .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
         .background_gradient(subset=["+/-"], cmap="RdYlGn")
-        .format({"% V": "{:.1f}%"}),
+        .format({"% V": "{:.2f}%"}),
         use_container_width=True,
         height=320
     )
