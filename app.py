@@ -725,12 +725,25 @@ elif seccion == "🔥 Rachas":
         for _, r in rachas_activas_df.iterrows():
             emoji = "🔥" if r["tipo_racha"] == "victorias" else "❄️"
             color = "#238636" if r["tipo_racha"] == "victorias" else "#da3633"
+
             st.markdown(
-                f'<div style="background:{color}22;border:1px solid {color};border-radius:8px;'
-                f'padding:10px 14px;margin-bottom:8px;">'
-                f'<b style="color:{color};">{emoji} {r["nombre"]}</b><br/>'
-                f'<span style="color:#e6edf3;">{r["longitud"]} {r["tipo_racha"]}</span>'
-                f'</div>', unsafe_allow_html=True
+                f'''
+                <div style="
+                    background:{color}15;
+                    border:1px solid {color};
+                    border-radius:10px;
+                    padding:10px 14px;
+                    margin-bottom:8px;
+                ">
+                    <b style="color:#e6edf3; font-size:15px;">
+                        {emoji} {r["nombre"]}
+                    </b><br/>
+                    <span style="color:#8b949e; font-size:14px;">
+                        {r["longitud"]} {r["tipo_racha"]}
+                    </span>
+                </div>
+                ''',
+                unsafe_allow_html=True
             )
 
     with col2:
