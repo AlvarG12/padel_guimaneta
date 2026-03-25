@@ -251,6 +251,69 @@ def calcular_rachas(df):
         pd.DataFrame(rachas_max_d).sort_values("max_racha_derrotas", ascending=False),
     )
 
+@st.cache_data
+def calcular_rachas_historicas(df):
+    rachas_victorias = []
+    rachas_derrotas = []
+
+    for nombre_jugador in df['nombre'].unique():
+        df_jugador = df[df['nombre'] == nombre_jugador].sort_values(by=['id_jornada', 'id_partido'])
+
+        # 🔥 RACHAS DE VICTORIAS
+        current_racha = 0
+        current_partidos = []
+
+        for _, row in df_jugador.iterrows():
+            if row['victoria']:
+                current_racha += 1
+                current_partidos.append(row['id_partido'])
+            else:
+                if current_racha > 0:
+                    rachas_victorias.append({
+                        "nombre": nombre_jugador,
+                        "racha": current_racha,
+                        "partidos": list(current_partidos)
+                    })
+                current_racha = 0
+                current_partidos = []
+
+        if current_racha > 0:
+            rachas_victorias.append({
+                "nombre": nombre_jugador,
+                "racha": current_racha,
+                "partidos": list(current_partidos)
+            })
+
+        # ❄️ RACHAS DE DERROTAS
+        current_racha = 0
+        current_partidos = []
+
+        for _, row in df_jugador.iterrows():
+            if not row['victoria']:
+                current_racha += 1
+                current_partidos.append(row['id_partido'])
+            else:
+                if current_racha > 0:
+                    rachas_derrotas.append({
+                        "nombre": nombre_jugador,
+                        "racha": current_racha,
+                        "partidos": list(current_partidos)
+                    })
+                current_racha = 0
+                current_partidos = []
+
+        if current_racha > 0:
+            rachas_derrotas.append({
+                "nombre": nombre_jugador,
+                "racha": current_racha,
+                "partidos": list(current_partidos)
+            })
+
+    df_v = pd.DataFrame(rachas_victorias).sort_values(by="racha", ascending=False)
+    df_d = pd.DataFrame(rachas_derrotas).sort_values(by="racha", ascending=False)
+
+    return df_v, df_d
+
 # ─────────────────────────────────────────────
 # SIDEBAR (VERSIÓN OPTIMIZADA)
 # ─────────────────────────────────────────────
@@ -321,6 +384,7 @@ ranking_jornada = calcular_ranking_por_jornada(df)
 df_enf = calcular_enfrentamientos(df)
 df_parejas = calcular_parejas(df)
 rachas_activas_df, rachas_max_v_df, rachas_max_d_df = calcular_rachas(df)
+df_rachas_v, df_rachas_d = calcular_rachas_historicas(df)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: CLASIFICACIÓN
@@ -748,17 +812,37 @@ elif seccion == "🔥 Rachas":
 
     with col2:
         st.markdown("#### 🏆 Mejor racha de victorias")
+
+        # TOP 10
         st.dataframe(
-            rachas_max_v_df.rename(columns={"nombre": "Jugador", "max_racha_victorias": "Racha Victorias"}),
-            use_container_width=True, hide_index=True
+            df_rachas_v.head(10),
+            use_container_width=True,
+            hide_index=True
         )
+
+        # MAX por jugador
+        max_v = df_rachas_v.groupby("nombre")["racha"].max().reset_index()
+        max_v = max_v.sort_values(by="racha", ascending=False)
+
+        st.markdown("##### 🧑 Máxima racha por jugador")
+        st.dataframe(max_v, use_container_width=True, hide_index=True)
 
     with col3:
         st.markdown("#### 💀 Peor racha de derrotas")
+
+        # TOP 10
         st.dataframe(
-            rachas_max_d_df.rename(columns={"nombre": "Jugador", "max_racha_derrotas": "Racha Derrotas"}),
-            use_container_width=True, hide_index=True
+            df_rachas_d.head(10),
+            use_container_width=True,
+            hide_index=True
         )
+
+        # MAX por jugador
+        max_d = df_rachas_d.groupby("nombre")["racha"].max().reset_index()
+        max_d = max_d.sort_values(by="racha", ascending=False)
+
+        st.markdown("##### 🧑 Máxima racha por jugador")
+        st.dataframe(max_d, use_container_width=True, hide_index=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
