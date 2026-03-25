@@ -606,11 +606,15 @@ elif seccion == "🤝 Parejas":
     if not df_parejas.empty:
         col1, col2 = st.columns([2, 1])
         with col1:
-            tabla_parejas = df_parejas[["jugador1", "jugador2", "partidos_juntos",
-                                        "victorias_juntos", "derrotas_juntos",
-                                        "juegos_ganados_juntos", "juegos_perdidos_juntos",
-                                        "porcentaje_victorias"]].copy()
+            tabla_parejas = df_parejas[[
+                "jugador1", "jugador2", "partidos_juntos",
+                "victorias_juntos", "derrotas_juntos",
+                "juegos_ganados_juntos", "juegos_perdidos_juntos",
+                "porcentaje_victorias"
+            ]].copy()
+
             tabla_parejas.columns = ["J1", "J2", "PJ", "V", "D", "JG", "JP", "% V"]
+
             st.dataframe(
                 tabla_parejas.style.background_gradient(
                     subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100
@@ -621,9 +625,10 @@ elif seccion == "🤝 Parejas":
 
         with col2:
             st.markdown("#### 🏅 Mejor pareja")
+
             mejor = df_parejas[df_parejas["partidos_juntos"] >= 3].copy()
 
-            # Crear criterio de desempate
+            # criterio de desempate
             mejor["diff_juegos"] = (
                 mejor["juegos_ganados_juntos"] - mejor["juegos_perdidos_juntos"]
             )
@@ -632,19 +637,37 @@ elif seccion == "🤝 Parejas":
                 by=["porcentaje_victorias", "diff_juegos", "partidos_juntos"],
                 ascending=[False, False, False]
             )
-            
+
             if not mejor.empty:
                 top = mejor.iloc[0]
-                st.success(f"**{top['jugador1']} & {top['jugador2']}**\n\n"
-                           f"🏆 {top['porcentaje_victorias']}% victorias\n\n"
-                           f"📊 {int(top['partidos_juntos'])} partidos juntos")
+                st.success(
+                    f"**{top['jugador1']} & {top['jugador2']}**\n\n"
+                    f"🏆 {top['porcentaje_victorias']}% victorias\n\n"
+                    f"📊 {int(top['partidos_juntos'])} partidos juntos"
+                )
+
             st.markdown("#### 💔 Peor pareja")
-            peor = df_parejas[df_parejas["partidos_juntos"] >= 3].sort_values("porcentaje_victorias")
+
+            peor = df_parejas[df_parejas["partidos_juntos"] >= 3].copy()
+
+            # mismo criterio de desempate
+            peor["diff_juegos"] = (
+                peor["juegos_ganados_juntos"] - peor["juegos_perdidos_juntos"]
+            )
+
+            peor = peor.sort_values(
+                by=["porcentaje_victorias", "diff_juegos", "partidos_juntos"],
+                ascending=[True, True, True]
+            )
+
             if not peor.empty:
                 bot = peor.iloc[0]
-                st.error(f"**{bot['jugador1']} & {bot['jugador2']}**\n\n"
-                         f"📉 {bot['porcentaje_victorias']}% victorias\n\n"
-                         f"📊 {int(bot['partidos_juntos'])} partidos juntos")
+                st.error(
+                    f"**{bot['jugador1']} & {bot['jugador2']}**\n\n"
+                    f"📉 {bot['porcentaje_victorias']}% victorias\n\n"
+                    f"📊 {int(bot['partidos_juntos'])} partidos juntos"
+                )
+
     else:
         st.info("No hay datos de parejas disponibles.")
 
