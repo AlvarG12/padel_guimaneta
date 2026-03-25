@@ -655,6 +655,7 @@ elif seccion == "⚔️ Enfrentamientos":
                 ("jugador1", "jugador2"),
                 ("victorias_jugador1", "victorias_jugador2"),
                 ("juegos_ganados_jugador1", "juegos_ganados_jugador2"),
+                ("pct_j1", "pct_j2"),
             ]
 
             for col1, col2 in cols_swap:
