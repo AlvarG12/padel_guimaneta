@@ -390,9 +390,9 @@ if seccion == "🏆 Clasificación":
 elif seccion == "👤 Perfil Jugador":
     st.markdown("## 👤 Perfil de Jugador")
     nombre_sel = st.selectbox(
-    "Selecciona jugador",
-    sorted(clasificacion["nombre"].tolist(), key=lambda x: quitar_acentos(x).lower())
-)
+        "Selecciona jugador",
+        sorted(clasificacion["nombre"].tolist(), key=lambda x: quitar_acentos(x).lower())
+    )
 
     fila = clasificacion[clasificacion["nombre"] == nombre_sel].iloc[0]
     pos = clasificacion.index[clasificacion["nombre"] == nombre_sel][0]
@@ -453,20 +453,35 @@ elif seccion == "👤 Perfil Jugador":
 
     st.divider()
     st.markdown("#### ⚔️ Enfrentamientos directos")
+
     if not df_enf.empty:
         rows = df_enf[(df_enf["jugador1"] == nombre_sel) | (df_enf["jugador2"] == nombre_sel)].copy()
         resultado = []
+
         for _, r in rows.iterrows():
             if r["jugador1"] == nombre_sel:
                 rival = r["jugador2"]
                 v_yo, v_rival = r["victorias_jugador1"], r["victorias_jugador2"]
+                jg_yo, jg_rival = r["juegos_ganados_jugador1"], r["juegos_ganados_jugador2"]
+                jp_yo, jp_rival = r["juegos_ganados_jugador2"], r["juegos_ganados_jugador1"]
                 pct = r["pct_j1"]
             else:
                 rival = r["jugador1"]
                 v_yo, v_rival = r["victorias_jugador2"], r["victorias_jugador1"]
+                jg_yo, jg_rival = r["juegos_ganados_jugador2"], r["juegos_ganados_jugador1"]
+                jp_yo, jp_rival = r["juegos_ganados_jugador1"], r["juegos_ganados_jugador2"]
                 pct = r["pct_j2"]
-            resultado.append({"Rival": rival, "Mis victorias": int(v_yo), "Sus victorias": int(v_rival),
-                               "Partidos": int(r["partidos_totales"]), "Mi %": pct})
+
+            resultado.append({
+                "Rival": rival,
+                "Mis victorias": int(v_yo),
+                "Sus victorias": int(v_rival),
+                "Partidos": int(r["partidos_totales"]),
+                "Juegos a favor": int(jg_yo),
+                "Juegos en contra": int(jp_yo),
+                "Mi %": pct
+            })
+
         df_res = pd.DataFrame(resultado).sort_values("Mi %", ascending=False).reset_index(drop=True)
         st.dataframe(
             df_res.style.background_gradient(subset=["Mi %"], cmap="RdYlGn", vmin=0, vmax=100),
@@ -474,18 +489,24 @@ elif seccion == "👤 Perfil Jugador":
         )
 
     st.markdown("#### 🤝 Rendimiento con parejas")
+
     if not df_parejas.empty:
         rows_p = df_parejas[(df_parejas["jugador1"] == nombre_sel) | (df_parejas["jugador2"] == nombre_sel)].copy()
         resultado_p = []
+
         for _, r in rows_p.iterrows():
             socio = r["jugador2"] if r["jugador1"] == nombre_sel else r["jugador1"]
+
             resultado_p.append({
                 "Pareja": socio,
                 "Partidos": int(r["partidos_juntos"]),
                 "Victorias": int(r["victorias_juntos"]),
                 "Derrotas": int(r["derrotas_juntos"]),
+                "Juegos a favor": int(r["juegos_ganados_juntos"]),
+                "Juegos en contra": int(r["juegos_perdidos_juntos"]),
                 "% Victorias": r["porcentaje_victorias"]
             })
+
         df_rp = pd.DataFrame(resultado_p).sort_values("% Victorias", ascending=False).reset_index(drop=True)
         st.dataframe(
             df_rp.style.background_gradient(subset=["% Victorias"], cmap="RdYlGn", vmin=0, vmax=100),
