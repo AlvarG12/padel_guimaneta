@@ -411,7 +411,6 @@ if seccion == "🏆 Clasificación":
     st.dataframe(
         tabla.style
         .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
-        .background_gradient(subset=["+/-"], cmap="RdYlGn")
         .format({"% V": "{:.2f}%"}),
         use_container_width=True,
         height=320
