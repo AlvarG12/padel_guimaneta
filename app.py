@@ -824,7 +824,7 @@ elif seccion == "🔥 Rachas":
         max_v = df_rachas_v.groupby("nombre")["racha"].max().reset_index()
         max_v = max_v.sort_values(by="racha", ascending=False)
 
-        st.markdown("##### Máxima racha por jugador")
+        st.markdown("##### Máxima racha por jugador (Victoria)")
         st.dataframe(max_v, use_container_width=True, hide_index=True)
 
     with col3:
@@ -841,7 +841,7 @@ elif seccion == "🔥 Rachas":
         max_d = df_rachas_d.groupby("nombre")["racha"].max().reset_index()
         max_d = max_d.sort_values(by="racha", ascending=False)
 
-        st.markdown("##### Máxima racha por jugador")
+        st.markdown("##### Máxima racha por jugador (Derrota)")
         st.dataframe(max_d, use_container_width=True, hide_index=True)
 
 
