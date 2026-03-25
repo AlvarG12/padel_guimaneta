@@ -405,13 +405,32 @@ if seccion == "🏆 Clasificación":
     st.divider()
 
     # Tabla de clasificación estilizada
-    tabla = clasificacion[["nombre", "partidos_jugados", "victorias", "derrotas",
-                            "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
-                            "porcentaje_victorias", "jornadas"]].copy()
+    tabla = clasificacion[[
+        "nombre", "partidos_jugados", "victorias", "derrotas",
+        "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
+        "porcentaje_victorias", "jornadas"
+    ]].copy()
+
     tabla.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V", "Jornadas"]
+
+    # 🔥 FUNCIONES DE COLOR SUAVE TIPO GRADIENTE
+    def color_top(nombre, rank):
+        if rank == 0:  # 🥇
+            return "background-color: rgba(255, 215, 0, 0.15); color: #FFD700; font-weight: 600;"
+        elif rank == 1:  # 🥈
+            return "background-color: rgba(192, 192, 192, 0.12); color: #C0C0C0; font-weight: 600;"
+        elif rank == 2:  # 🥉
+            return "background-color: rgba(205, 127, 50, 0.12); color: #CD7F32; font-weight: 600;"
+        return ""
+
+    # Aplicar estilo correctamente usando el índice REAL de la tabla
+    def estilo_fila(row):
+        rank = row.name  # posición real en el DataFrame ya ordenado
+        return [color_top(row["Jugador"], rank)] * len(row)
 
     st.dataframe(
         tabla.style
+        .apply(estilo_fila, axis=1)
         .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
         .format({"% V": "{:.2f}%"}),
         use_container_width=True,
