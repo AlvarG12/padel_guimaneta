@@ -621,9 +621,18 @@ elif seccion == "🤝 Parejas":
 
         with col2:
             st.markdown("#### 🏅 Mejor pareja")
-            mejor = df_parejas[df_parejas["partidos_juntos"] >= 3].sort_values(
-                "porcentaje_victorias", ascending=False
+            mejor = df_parejas[df_parejas["partidos_juntos"] >= 3].copy()
+
+            # Crear criterio de desempate
+            mejor["diff_juegos"] = (
+                mejor["juegos_ganados_juntos"] - mejor["juegos_perdidos_juntos"]
             )
+
+            mejor = mejor.sort_values(
+                by=["porcentaje_victorias", "diff_juegos", "partidos_juntos"],
+                ascending=[False, False, False]
+            )
+            
             if not mejor.empty:
                 top = mejor.iloc[0]
                 st.success(f"**{top['jugador1']} & {top['jugador2']}**\n\n"
