@@ -63,25 +63,22 @@ def cargar_datos(base_path="data/"):
 
 @st.cache_data
 def construir_df(jugadores, partidos, partido_jugadores):
-    print("🔍 DEBUG: Construyendo DF...")
+    # Merge paso a paso
+    df = partido_jugadores.merge(jugadores, on="id_jugador")
+    df = df.merge(partidos, on="id_partido")
     
-    # PASO 1: Merge PJ + JUGADORES
-    df1 = partido_jugadores.merge(jugadores, on="id_jugador", how='left')
-    print(f"📈 Merge 1 (PJ+JUGADORES): {len(df1)} filas")
-    print(f"🏷️ Temporada en df1: {'temporada' in df1.columns}")
+    # LIMPIAR COLUMNA TEMPORADA (elige una y elimina duplicados)
+    if 'temporada_x' in df.columns and 'temporada_y' in df.columns:
+        # Ambas existen, usar la de PJ (más confiable)
+        df['temporada'] = df['temporada_x']
+        df = df.drop(['temporada_x', 'temporada_y'], axis=1)
+    elif 'temporada' in df.columns:
+        pass  # Ya está bien
+    else:
+        df['temporada'] = 'Sin temporada'
     
-    # PASO 2: Merge con PARTIDOS (aquí está el problema)
-    df = df1.merge(partidos, on="id_partido", how='left')
-    print(f"📈 Merge 2 (FINAL): {len(df)} filas")
-    print(f"🏷️ Columnas finales: {list(df.columns)}")
-    print(f"🏷️ Temporada existe: {'temporada' in df.columns}")
-    
-    # SI NO HAY TEMPORADA, LA RECUPERAMOS DEL PARTIDO_JUGADORES
-    if 'temporada' not in df.columns:
-        print("⚠️ RECUPERANDO TEMPORADA de partido_jugadores...")
-        df = df1.merge(partidos[['id_partido', 'equipo_ganador', 'juegos_equipo1', 'juegos_equipo2']], 
-                      on="id_partido", how='left')
-        df['temporada'] = df1['temporada']  # Forzar desde PJ
+    # LIMPIAR NaN en temporada
+    df['temporada'] = df['temporada'].fillna('Sin temporada')
     
     # CÁLCULOS
     df["victoria"] = df["equipo"] == df["equipo_ganador"]
@@ -92,7 +89,6 @@ def construir_df(jugadores, partidos, partido_jugadores):
         lambda x: x["juegos_equipo2"] if x["equipo"] == 1 else x["juegos_equipo1"], axis=1
     )
     
-    print(f"✅ DF final: {len(df)} filas, temporadas: {df['temporada'].unique()}")
     return df
 
 @st.cache_data
@@ -699,12 +695,11 @@ with st.sidebar:
         jugadores, partidos, partido_jugadores = cargar_datos()
         df_completo = construir_df(jugadores, partidos, partido_jugadores)
         
-        # LÓGICA ROBUSTA PARA TEMPORADAS
+        # OBTENER TEMPORADAS DE FORMA SEGURA
         temporadas = ["Todas"]
         if 'temporada' in df_completo.columns:
-            temporadas_unicas = sorted(df_completo["temporada"].dropna().unique())
-            if len(temporadas_unicas) > 0:
-                temporadas += temporadas_unicas
+            temporadas_validas = sorted(df_completo["temporada"].dropna().unique())
+            temporadas += [t for t in temporadas_validas if pd.notna(t) and str(t).strip()]
         
         temporada_sel = st.selectbox("📅 Temporada", temporadas)
         
@@ -713,21 +708,22 @@ with st.sidebar:
             df = df_completo
         else:
             df_filtrado = df_completo[df_completo["temporada"] == temporada_sel]
-            df = df_filtrado if not df_filtrado.empty else df_completo
-            if len(df) == 0:
-                st.warning("⚠️ Sin datos para la temporada seleccionada")
-                df = df_completo
-                
+            df = df_filtrado if len(df_filtrado) > 0 else df_completo
+            
     except Exception as e:
-        st.error(f"❌ Error: {str(e)}")
-        st.info("📁 Verifica que tienes estos archivos en `/data/`: jugadores.csv, partidos_24_25.csv, etc.")
+        st.error(f"❌ Error cargando datos: {e}")
         st.stop()
 
     st.divider()
     st.markdown("**🧭 Navegación**")
-    seccion = st.radio("", ["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"])
-    
+    seccion = st.radio(
+        label="",
+        options=["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"],
+        label_visibility="collapsed"
+    )
     st.divider()
+    
     if not df.empty:
-        st.metric("📊 Partidos", df["id_partido"].nunique())
-        st.metric("🗓️ Jornadas", df["id_jornada"].nunique())
+        col1, col2 = st.columns(2)
+        col1.metric("📊 Partidos", df["id_partido"].nunique())
+        col2.metric("🗓️ Jornadas", df["id_jornada"].nunique())
