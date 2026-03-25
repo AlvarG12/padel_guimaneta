@@ -538,7 +538,7 @@ elif seccion == "⚔️ Enfrentamientos":
                                 "pct_j1", "pct_j2"]].copy()
             tabla_enf.columns = ["Jugador 1", "Jugador 2", "Partidos",
                                   "V Jugador 1", "V Jugador 2", "% J1", "% J2"]
-            st.dataframe(tabla_enf, use_container_width=True)
+            st.dataframe(tabla_enf, use_container_width=True, height=800)
  
     with tab2:
         if not df_enf.empty:
@@ -563,7 +563,6 @@ elif seccion == "⚔️ Enfrentamientos":
             st.pyplot(fig)
             plt.close()
  
- 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: PAREJAS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -579,9 +578,11 @@ elif seccion == "🤝 Parejas":
                                         "porcentaje_victorias"]].copy()
             tabla_parejas.columns = ["J1", "J2", "PJ", "V", "D", "JG", "JP", "% V"]
             st.dataframe(
-                tabla_parejas.style.background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100),
+                tabla_parejas.style.background_gradient(
+                    subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100
+                ),
                 use_container_width=True,
-                height=400
+                height=800
             )
  
         with col2:
