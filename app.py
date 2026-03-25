@@ -812,7 +812,7 @@ elif seccion == "🔥 Rachas":
             )
 
     with col2:
-        st.markdown("#### 🏆 Mejor racha de victorias")
+        st.markdown("#### 🏆 10 Mejores rachas de victorias")
 
         # TOP 10
         st.dataframe(
@@ -829,7 +829,7 @@ elif seccion == "🔥 Rachas":
         st.dataframe(max_v, use_container_width=True, hide_index=True)
 
     with col3:
-        st.markdown("#### 💀 Peor racha de derrotas")
+        st.markdown("#### 💀 10 Peores rachas de derrotas")
 
         # TOP 10
         st.dataframe(
