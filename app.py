@@ -362,6 +362,7 @@ with st.sidebar:
         label="",
         options=[
             "🏆 Clasificación",
+            "📊 Detalle",
             "👤 Perfil Jugador",
             "⚔️ Enfrentamientos",
             "🤝 Parejas",
@@ -467,6 +468,78 @@ if seccion == "🏆 Clasificación":
     st.pyplot(fig)
     plt.close()
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECCIÓN: DETALLE
+# ─────────────────────────────────────────────────────────────────────────────
+elif seccion == "📊 Detalle":
+    st.markdown("## 📊 Detalle de Jornada")
+
+    # 🔽 Selección de jornada
+    jornadas = sorted(df["id_jornada"].unique())
+    jornada_sel = st.selectbox("Selecciona jornada", jornadas)
+
+    st.divider()
+
+    # 🏆 CLASIFICACIÓN DE ESA JORNADA
+    st.markdown("### 🏆 Clasificación de la jornada")
+
+    df_jornada = df[df["id_jornada"] <= jornada_sel].copy()
+
+    # reutilizamos tu lógica de clasificación
+    clasif_jornada = calcular_clasificacion(df_jornada)
+
+    tabla_jornada = clasif_jornada[[
+        "nombre", "partidos_jugados", "victorias", "derrotas",
+        "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
+        "porcentaje_victorias"
+    ]].copy()
+
+    tabla_jornada.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V"]
+
+    st.dataframe(
+        tabla_jornada.style
+        .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
+        .format({"% V": "{:.2f}%"}),
+        use_container_width=True
+    )
+
+    st.divider()
+
+    # ⚔️ PARTIDOS DE ESA JORNADA
+    st.markdown("### ⚔️ Partidos de la jornada")
+
+    partidos_jornada = df[
+        (df["id_jornada"] == jornada_sel)
+    ].drop_duplicates(subset=["id_partido"])
+
+    for _, p in partidos_jornada.iterrows():
+
+        equipo1 = p["jugador1_equipo1"] if "jugador1_equipo1" in p else p["equipo1"]
+        equipo2 = p["jugador1_equipo2"] if "jugador1_equipo2" in p else p["equipo2"]
+
+        # fallback por si no tienes esos nombres
+        if "jugadores_equipo1" in p and "jugadores_equipo2" in p:
+            eq1 = p["jugadores_equipo1"]
+            eq2 = p["jugadores_equipo2"]
+        else:
+            eq1 = equipo1
+            eq2 = equipo2
+
+        g1 = int(p["juegos_equipo1"])
+        g2 = int(p["juegos_equipo2"])
+
+        ganador = "equipo1" if p["equipo_ganador"] == 1 else "equipo2"
+
+        if ganador == "equipo1":
+            texto_ganador = f"{eq1} ganan el partido"
+        else:
+            texto_ganador = f"{eq2} ganan el partido"
+
+        st.markdown(
+            f"**{p['id_partido']}. {eq1} vs {eq2}: {g1}-{g2}**  \n"
+            f"_{texto_ganador}_"
+        )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: PERFIL JUGADOR
