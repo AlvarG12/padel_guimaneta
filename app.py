@@ -462,14 +462,8 @@ elif seccion == "👤 Perfil Jugador":
                                "Partidos": int(r["partidos_totales"]), "Mi %": pct})
         df_res = pd.DataFrame(resultado).sort_values("Mi %", ascending=False).reset_index(drop=True)
         st.dataframe(
-            df_res.style.background_gradient(
-                subset=["Mi %"],
-                cmap="RdYlGn",
-                vmin=0,
-                vmax=100
-            ),
-            use_container_width=True,
-            height=600
+            df_res.style.background_gradient(subset=["Mi %"], cmap="RdYlGn", vmin=0, vmax=100),
+            use_container_width=True
         )
  
     st.markdown("#### 🤝 Rendimiento con parejas")
@@ -487,14 +481,8 @@ elif seccion == "👤 Perfil Jugador":
             })
         df_rp = pd.DataFrame(resultado_p).sort_values("% Victorias", ascending=False).reset_index(drop=True)
         st.dataframe(
-            df_rp.style.background_gradient(
-                subset=["% Victorias"],
-                cmap="RdYlGn",
-                vmin=0,
-                vmax=100
-            ),
-            use_container_width=True,
-            height=600
+            df_rp.style.background_gradient(subset=["% Victorias"], cmap="RdYlGn", vmin=0, vmax=100),
+            use_container_width=True
         )
  
  
