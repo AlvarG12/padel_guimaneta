@@ -37,9 +37,9 @@ def cargar_datos(base_path="data/"):
     def leer_temp(suffix, label):
         file_p = os.path.join(base_path, f"partidos_{suffix}.csv")
         file_pj = os.path.join(base_path, f"partido_jugadores_{suffix}.csv")
-        
+
         print(f"🔍 Buscando: partidos_{suffix}.csv y partido_jugadores_{suffix}.csv")
-        
+
         if os.path.exists(file_p) and os.path.exists(file_pj):
             p = pd.read_csv(file_p)
             pj = pd.read_csv(file_pj)
@@ -56,7 +56,7 @@ def cargar_datos(base_path="data/"):
 
     partidos = pd.concat([p24, p25], ignore_index=True)
     partido_jugadores = pd.concat([pj24, pj25], ignore_index=True)
-    
+
     print(f"📊 Total: {len(partidos)} partidos, {len(partido_jugadores)} PJ")
     print(f"🏷️ Temporadas en partidos: {partidos['temporada'].unique() if 'temporada' in partidos.columns else 'NO'}")
     print(f"🏷️ Temporadas en PJ: {partido_jugadores['temporada'].unique() if 'temporada' in partido_jugadores.columns else 'NO'}")
@@ -71,36 +71,36 @@ def cargar_datos(base_path="data/"):
 @st.cache_data
 def construir_df(jugadores, partidos, partido_jugadores):
     print("🔍 DEBUG: Construyendo DF CORREGIDO...")
-    
+
     # LIMPIAR DUPLICADOS
     partidos_clean = partidos.drop_duplicates(subset=['id_partido'])
     pj_clean = partido_jugadores.drop_duplicates()
-    
+
     print(f"🔍 Partidos limpios: {len(partidos_clean)}")
     print(f"🔍 PJ limpios: {len(pj_clean)}")
-    
+
     # MERGE PASO A PASO
     df = pj_clean.merge(jugadores[['id_jugador', 'nombre']], on="id_jugador", how='left')
     df = df.merge(partidos_clean, on="id_partido", how='left')
-    
+
     # TEMPORADA LIMPIA
     if 'temporada_x' in df.columns:
         df['temporada'] = df['temporada_x'].fillna(df.get('temporada_y', 'Sin temporada'))
     else:
         df['temporada'] = df['temporada'].fillna('Sin temporada')
-    
+
     # CÁLCULOS VECTORIZADOS (RÁPIDOS Y CORRECTOS)
     df['victoria'] = (df['equipo'] == df['equipo_ganador']).astype(int)
     df['juegos_ganados'] = np.where(df['equipo'] == 1, df['juegos_equipo1'], df['juegos_equipo2'])
     df['juegos_perdidos'] = np.where(df['equipo'] == 1, df['juegos_equipo2'], df['juegos_equipo1'])
-    
+
     # DIAGNÓSTICO FINAL (SIN ASSERT)
     partidos_unicos = df['id_partido'].nunique()
     filas_total = len(df)
     pj_promedio = filas_total / partidos_unicos if partidos_unicos > 0 else 0
-    
+
     print(f"✅ FINAL: {filas_total} filas, {partidos_unicos} partidos, {pj_promedio:.1f} PJ/partido")
-    
+
     return df
 
 @st.cache_data
@@ -335,7 +335,7 @@ if seccion == "🏆 Clasificación":
     tabla = clasificacion[["nombre", "partidos_jugados", "victorias", "derrotas",
                             "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
                             "porcentaje_victorias", "jornadas"]].copy()
-    tabla.columns = ["Jugador", "Partidos Jugados", "Victorias", "Derrotas", "+/- Juegos", "Juegos Ganados", "Juegos Perdidos", "% Victorias", "Jornadas"]
+    tabla.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V", "Jornadas"]
 
     st.dataframe(
         tabla.style
@@ -375,8 +375,8 @@ if seccion == "🏆 Clasificación":
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
- 
- 
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: PERFIL JUGADOR
 # ─────────────────────────────────────────────────────────────────────────────
@@ -386,20 +386,20 @@ elif seccion == "👤 Perfil Jugador":
     "Selecciona jugador",
     sorted(clasificacion["nombre"].tolist(), key=lambda x: quitar_acentos(x).lower())
 )
- 
+
     fila = clasificacion[clasificacion["nombre"] == nombre_sel].iloc[0]
     pos = clasificacion.index[clasificacion["nombre"] == nombre_sel][0]
- 
+
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("📍 Posición", f"#{pos}")
     col2.metric("🎾 Partidos", fila["partidos_jugados"])
     col3.metric("✅ Victorias", int(fila["victorias"]))
     col4.metric("❌ Derrotas", int(fila["derrotas"]))
     col5.metric("📈 % Victorias", f"{fila['porcentaje_victorias']}%")
- 
+
     st.divider()
     col_a, col_b = st.columns(2)
- 
+
     with col_a:
         st.markdown("#### Evolución del ranking")
         datos_jugador = ranking_jornada[ranking_jornada["nombre"] == nombre_sel].sort_values("hasta_jornada")
@@ -422,7 +422,7 @@ elif seccion == "👤 Perfil Jugador":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
- 
+
     with col_b:
         st.markdown("#### Victorias vs Derrotas")
         fig, ax = plt.subplots(figsize=(5, 4))
@@ -443,7 +443,7 @@ elif seccion == "👤 Perfil Jugador":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
- 
+
     st.divider()
     st.markdown("#### ⚔️ Enfrentamientos directos")
     if not df_enf.empty:
@@ -465,7 +465,7 @@ elif seccion == "👤 Perfil Jugador":
             df_res.style.background_gradient(subset=["Mi %"], cmap="RdYlGn", vmin=0, vmax=100),
             use_container_width=True
         )
- 
+
     st.markdown("#### 🤝 Rendimiento con parejas")
     if not df_parejas.empty:
         rows_p = df_parejas[(df_parejas["jugador1"] == nombre_sel) | (df_parejas["jugador2"] == nombre_sel)].copy()
@@ -484,22 +484,22 @@ elif seccion == "👤 Perfil Jugador":
             df_rp.style.background_gradient(subset=["% Victorias"], cmap="RdYlGn", vmin=0, vmax=100),
             use_container_width=True
         )
- 
- 
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: ENFRENTAMIENTOS
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "⚔️ Enfrentamientos":
     st.markdown("## ⚔️ Enfrentamientos Directos")
- 
+
     tab1, tab2 = st.tabs(["🔍 Buscar enfrentamiento", "🗺️ Heatmap completo"])
- 
+
     with tab1:
         jugadores_lista = sorted(df["nombre"].unique())
         col1, col2 = st.columns(2)
         j1 = col1.selectbox("Jugador 1", jugadores_lista, key="enf_j1")
         j2 = col2.selectbox("Jugador 2", [j for j in jugadores_lista if j != j1], key="enf_j2")
- 
+
         if not df_enf.empty:
             fila = df_enf[
                 ((df_enf["jugador1"] == j1) & (df_enf["jugador2"] == j2)) |
@@ -515,7 +515,7 @@ elif seccion == "⚔️ Enfrentamientos":
                     v1, v2 = int(r["victorias_jugador2"]), int(r["victorias_jugador1"])
                     jg1, jg2 = int(r["juegos_ganados_jugador2"]), int(r["juegos_ganados_jugador1"])
                     p1_name, p2_name = j1, j2
- 
+
                 total = int(r["partidos_totales"])
                 st.divider()
                 c1, c2, c3 = st.columns([2, 1, 2])
@@ -529,7 +529,7 @@ elif seccion == "⚔️ Enfrentamientos":
                 c3.metric("Juegos ganados", jg2)
             else:
                 st.info("Estos jugadores no se han enfrentado todavía.")
- 
+
         st.divider()
         st.markdown("#### 📋 Tabla completa de enfrentamientos")
         if not df_enf.empty:
@@ -539,7 +539,7 @@ elif seccion == "⚔️ Enfrentamientos":
             tabla_enf.columns = ["Jugador 1", "Jugador 2", "Partidos",
                                   "V Jugador 1", "V Jugador 2", "% J1", "% J2"]
             st.dataframe(tabla_enf, use_container_width=True, height=770)
- 
+
     with tab2:
         if not df_enf.empty:
             jugadores_unicos = sorted(df["nombre"].unique())
@@ -550,7 +550,7 @@ elif seccion == "⚔️ Enfrentamientos":
                     matriz.loc[j1n, j2n] = r["victorias_jugador1"]
                     matriz.loc[j2n, j1n] = r["victorias_jugador2"]
             np.fill_diagonal(matriz.values, np.nan)
- 
+
             fig, ax = plt.subplots(figsize=(10, 8))
             fig.patch.set_facecolor("#0d1117")
             ax.set_facecolor("#161b22")
@@ -562,13 +562,13 @@ elif seccion == "⚔️ Enfrentamientos":
             plt.tight_layout()
             st.pyplot(fig)
             plt.close()
- 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: PAREJAS
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "🤝 Parejas":
     st.markdown("## 🤝 Rendimiento Jugando Juntos")
- 
+
     if not df_parejas.empty:
         col1, col2 = st.columns([2, 1])
         with col1:
@@ -584,7 +584,7 @@ elif seccion == "🤝 Parejas":
                 use_container_width=True,
                 height=770
             )
- 
+
         with col2:
             st.markdown("#### 🏅 Mejor pareja")
             mejor = df_parejas[df_parejas["partidos_juntos"] >= 3].sort_values(
@@ -604,16 +604,16 @@ elif seccion == "🤝 Parejas":
                          f"📊 {int(bot['partidos_juntos'])} partidos juntos")
     else:
         st.info("No hay datos de parejas disponibles.")
- 
- 
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: RACHAS
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "🔥 Rachas":
     st.markdown("## 🔥 Rachas")
- 
+
     col1, col2, col3 = st.columns(3)
- 
+
     with col1:
         st.markdown("#### ⚡ Racha activa")
         for _, r in rachas_activas_df.iterrows():
@@ -626,40 +626,40 @@ elif seccion == "🔥 Rachas":
                 f'<span style="color:#e6edf3;">{r["longitud"]} {r["tipo_racha"]}</span>'
                 f'</div>', unsafe_allow_html=True
             )
- 
+
     with col2:
         st.markdown("#### 🏆 Mejor racha de victorias")
         st.dataframe(
             rachas_max_v_df.rename(columns={"nombre": "Jugador", "max_racha_victorias": "Racha Victorias"}),
             use_container_width=True, hide_index=True
         )
- 
+
     with col3:
         st.markdown("#### 💀 Peor racha de derrotas")
         st.dataframe(
             rachas_max_d_df.rename(columns={"nombre": "Jugador", "max_racha_derrotas": "Racha Derrotas"}),
             use_container_width=True, hide_index=True
         )
- 
- 
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: GRÁFICAS
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "📊 Gráficas":
     st.markdown("## 📊 Gráficas")
- 
+
     tab1, tab2, tab3 = st.tabs(["📊 V/D por jugador", "📈 % Victorias por jornada", "🎯 Diferencia juegos"])
- 
+
     with tab1:
         plot_data = clasificacion.sort_values("partidos_jugados", ascending=False)
         fig, ax = plt.subplots(figsize=(12, 6))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
- 
+
         x = range(len(plot_data))
         ax.bar(x, plot_data["derrotas"], color="#da3633", label="Derrotas", width=0.6)
         ax.bar(x, plot_data["victorias"], bottom=plot_data["derrotas"], color="#238636", label="Victorias", width=0.6)
- 
+
         for i, (idx, row) in enumerate(plot_data.iterrows()):
             ax.text(i, row["derrotas"] / 2, str(int(row["derrotas"])),
                     ha="center", va="center", color="white", fontsize=9, fontweight="bold")
@@ -667,7 +667,7 @@ elif seccion == "📊 Gráficas":
                     ha="center", va="center", color="white", fontsize=9, fontweight="bold")
             ax.text(i, row["partidos_jugados"] + 0.3, f"{row['porcentaje_victorias']}%",
                     ha="center", va="bottom", color="#e6edf3", fontsize=9)
- 
+
         ax.set_xticks(list(x))
         ax.set_xticklabels(plot_data["nombre"], rotation=30, ha="right", color="#e6edf3")
         ax.set_ylabel("Partidos", color="#8b949e")
@@ -679,7 +679,7 @@ elif seccion == "📊 Gráficas":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
- 
+
     with tab2:
         fig, ax = plt.subplots(figsize=(14, 6))
         fig.patch.set_facecolor("#0d1117")
@@ -700,7 +700,7 @@ elif seccion == "📊 Gráficas":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
- 
+
     with tab3:
         top_diff = clasificacion.sort_values("diferencia_juegos", ascending=False)
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -721,4 +721,3 @@ elif seccion == "📊 Gráficas":
             spine.set_edgecolor("#30363d")
         plt.tight_layout()
         st.pyplot(fig)
-        plt.close()
