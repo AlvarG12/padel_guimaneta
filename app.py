@@ -538,7 +538,7 @@ elif seccion == "⚔️ Enfrentamientos":
                                 "pct_j1", "pct_j2"]].copy()
             tabla_enf.columns = ["Jugador 1", "Jugador 2", "Partidos",
                                   "V Jugador 1", "V Jugador 2", "% J1", "% J2"]
-            st.dataframe(tabla_enf, use_container_width=True, height=800)
+            st.dataframe(tabla_enf, use_container_width=True, height=760)
  
     with tab2:
         if not df_enf.empty:
@@ -582,7 +582,7 @@ elif seccion == "🤝 Parejas":
                     subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100
                 ),
                 use_container_width=True,
-                height=800
+                height=760
             )
  
         with col2:
