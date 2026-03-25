@@ -50,18 +50,6 @@ def cargar_datos(base_path="data/"):  # ← NUEVA VERSIÓN
     return jugadores, partidos, partido_jugadores
 
 @st.cache_data
-def construir_df(jugadores, partidos, partido_jugadores):  # ← SIMPLIFICADA
-    df = partido_jugadores.merge(jugadores[['id_jugador','nombre']], on='id_jugador')
-    df = df.merge(partidos, on='id_partido')
-    df['temporada'] = df['temporada'].fillna('2024/25')
-    
-    df['victoria'] = (df['equipo'] == df['equipo_ganador']).astype(int)
-    df['juegos_ganados'] = np.where(df['equipo']==1, df['juegos_equipo1'], df['juegos_equipo2'])
-    df['juegos_perdidos'] = np.where(df['equipo']==1, df['juegos_equipo2'], df['juegos_equipo1'])
-    
-    return df
-
-@st.cache_data
 def calcular_clasificacion(df):
     # 1 PARTIDO = 1 VICTORIA por jugador
     df_partidos = df.groupby(['nombre', 'id_partido', 'temporada']).agg({
