@@ -630,14 +630,47 @@ elif seccion == "⚔️ Enfrentamientos":
  
                 total = int(r["partidos_totales"])
                 st.divider()
+
                 c1, c2, c3 = st.columns([2, 1, 2])
+
+                # 🔥 JUGADOR 1
                 c1.markdown(f"### {p1_name}")
-                c1.metric("Victorias", v1, f"{v1/total*100:.1f}%")
+
+                pct1 = v1 / total * 100 if total > 0 else 0
+
+                c1.markdown(f"""
+                <div style="text-align:center;">
+                    <div style="font-size:32px; font-weight:700; color:#e6edf3;">
+                        {pct1:.1f}%
+                    </div>
+                    <div style="font-size:14px; color:#8b949e;">
+                        Victorias: {v1}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
                 c1.metric("Juegos ganados", jg1)
+
+                # 🔥 CENTRO
                 c2.markdown("### VS", unsafe_allow_html=False)
                 c2.metric("Partidos", total)
+
+                # 🔥 JUGADOR 2
                 c3.markdown(f"### {p2_name}")
-                c3.metric("Victorias", v2, f"{v2/total*100:.1f}%")
+
+                pct2 = v2 / total * 100 if total > 0 else 0
+
+                c3.markdown(f"""
+                <div style="text-align:center;">
+                    <div style="font-size:32px; font-weight:700; color:#e6edf3;">
+                        {pct2:.1f}%
+                    </div>
+                    <div style="font-size:14px; color:#8b949e;">
+                        Victorias: {v2}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
                 c3.metric("Juegos ganados", jg2)
             else:
                 st.info("Estos jugadores no se han enfrentado todavía.")
