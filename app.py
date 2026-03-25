@@ -266,7 +266,8 @@ def calcular_rachas_historicas(df):
         for _, row in df_jugador.iterrows():
             if row['victoria']:
                 current_racha += 1
-                current_partidos.append(row['id_partido'])
+                partido_limpio = str(row['id_partido']).split("_")[0]
+                current_partidos.append(partido_limpio)
             else:
                 if current_racha > 0:
                     rachas_victorias.append({
@@ -291,7 +292,8 @@ def calcular_rachas_historicas(df):
         for _, row in df_jugador.iterrows():
             if not row['victoria']:
                 current_racha += 1
-                current_partidos.append(row['id_partido'])
+                partido_limpio = str(row['id_partido']).split("_")[0]
+                current_partidos.append(partido_limpio)
             else:
                 if current_racha > 0:
                     rachas_derrotas.append({
