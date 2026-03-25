@@ -238,7 +238,7 @@ def calcular_rachas(df):
     )
 
 # ─────────────────────────────────────────────
-# SIDEBAR (VERSIÓN CORREGIDA)
+# SIDEBAR (VERSIÓN OPTIMIZADA)
 # ─────────────────────────────────────────────
 
 with st.sidebar:
@@ -249,41 +249,55 @@ with st.sidebar:
     st.divider()
 
     try:
+        # Carga de datos
         jugadores, partidos, partido_jugadores = cargar_datos()
         df_completo = construir_df(jugadores, partidos, partido_jugadores)
-        
-        # OBTENER TEMPORADAS DE FORMA SEGURA
-        temporadas = ["Todas"]
+
+        # Obtener temporadas reales (SIN "Todas")
         if 'temporada' in df_completo.columns:
-            temporadas_validas = sorted(df_completo["temporada"].dropna().unique())
-            temporadas += [t for t in temporadas_validas if pd.notna(t) and str(t).strip()]
-        
-        temporada_sel = st.selectbox("📅 Temporada", temporadas)
-        
-        # FILTRADO SEGURO
-        if temporada_sel == "Todas":
-            df = df_completo
+            temporadas = sorted(df_completo["temporada"].dropna().unique())
         else:
-            df_filtrado = df_completo[df_completo["temporada"] == temporada_sel]
-            df = df_filtrado if len(df_filtrado) > 0 else df_completo
-            
+            st.error("❌ No existe la columna 'temporada'")
+            st.stop()
+
+        # Selector de temporada
+        temporada_sel = st.selectbox("📅 Temporada", temporadas)
+
+        # Filtrado directo (SIEMPRE una temporada)
+        df = df_completo[df_completo["temporada"] == temporada_sel].copy()
+
+        # Seguridad extra (por si algo raro pasa)
+        if df.empty:
+            st.warning("⚠️ No hay datos para esta temporada")
+            st.stop()
+
     except Exception as e:
         st.error(f"❌ Error cargando datos: {e}")
         st.stop()
 
     st.divider()
+
+    # Navegación
     st.markdown("**🧭 Navegación**")
     seccion = st.radio(
         label="",
-        options=["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"],
+        options=[
+            "🏆 Clasificación",
+            "👤 Perfil Jugador",
+            "⚔️ Enfrentamientos",
+            "🤝 Parejas",
+            "🔥 Rachas",
+            "📊 Gráficas"
+        ],
         label_visibility="collapsed"
     )
+
     st.divider()
-    
-    if not df.empty:
-        col1, col2 = st.columns(2)
-        col1.metric("📊 Partidos", df["id_partido"].nunique())
-        col2.metric("🗓️ Jornadas", df["id_jornada"].nunique())
+
+    # Métricas rápidas
+    col1, col2 = st.columns(2)
+    col1.metric("📊 Partidos", df["id_partido"].nunique())
+    col2.metric("🗓️ Jornadas", df["id_jornada"].nunique())
 
 # ─────────────────────────────────────────────
 # CÁLCULOS GLOBALES
