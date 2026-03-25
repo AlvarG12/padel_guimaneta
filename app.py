@@ -405,13 +405,31 @@ if seccion == "🏆 Clasificación":
     st.divider()
 
     # Tabla de clasificación estilizada
-    tabla = clasificacion[["nombre", "partidos_jugados", "victorias", "derrotas",
-                            "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
-                            "porcentaje_victorias", "jornadas"]].copy()
+    tabla = clasificacion[[
+        "nombre", "partidos_jugados", "victorias", "derrotas",
+        "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
+        "porcentaje_victorias", "jornadas"
+    ]].copy()
+
     tabla.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V", "Jornadas"]
+
+    # 🔥 AÑADIMOS POSICIÓN
+    tabla.insert(0, "Pos", range(1, len(tabla) + 1))
+
+    # 🎨 COLORES SUAVES PARA TOP 3
+    def estilo_top(x):
+        if x.name == 0:
+            return ['color: #FFD700; font-weight: 600;'] * len(x)  # oro
+        elif x.name == 1:
+            return ['color: #C0C0C0; font-weight: 600;'] * len(x)  # plata
+        elif x.name == 2:
+            return ['color: #CD7F32; font-weight: 600;'] * len(x)  # bronce
+        else:
+            return [''] * len(x)
 
     st.dataframe(
         tabla.style
+        .apply(estilo_top, axis=1, subset=["Pos", "Jugador"])
         .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
         .format({"% V": "{:.2f}%"}),
         use_container_width=True,
