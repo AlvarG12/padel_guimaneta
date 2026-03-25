@@ -22,84 +22,57 @@ st.set_page_config(
 # ─────────────────────────────────────────────
 
 @st.cache_data
-def cargar_datos(base_path="data/"):
-    print("🔍 DEBUG: Cargando datos...")
+def cargar_datos(base_path="data/"):  # ← NUEVA VERSIÓN
     jugadores = pd.read_csv(os.path.join(base_path, "jugadores.csv"))
-    print(f"✅ Jugadores cargados: {len(jugadores)} filas")
-
-    def leer_temp(suffix, label):
+    
+    def leer_temp(suffix, label, offset_id=0):
         file_p = os.path.join(base_path, f"partidos_{suffix}.csv")
         file_pj = os.path.join(base_path, f"partido_jugadores_{suffix}.csv")
-        
-        print(f"🔍 Buscando: partidos_{suffix}.csv y partido_jugadores_{suffix}.csv")
-        
         if os.path.exists(file_p) and os.path.exists(file_pj):
             p = pd.read_csv(file_p)
             pj = pd.read_csv(file_pj)
+            p['id_partido_original'] = p['id_partido']
+            pj['id_partido_original'] = pj['id_partido']
+            p['id_partido'] += offset_id
+            pj['id_partido'] += offset_id
             p["temporada"] = label
             pj["temporada"] = label
-            print(f"✅ Temporada {label}: {len(p)} partidos, {len(pj)} PJ")
             return p, pj
-        else:
-            print(f"❌ Archivos {suffix} NO encontrados")
-            return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
-    p24, pj24 = leer_temp("24_25", "2024/25")
-    p25, pj25 = leer_temp("25_26", "2025/26")
-
+    p24, pj24 = leer_temp("24_25", "2024/25", 0)
+    p25, pj25 = leer_temp("25_26", "2025/26", 10000)
+    
     partidos = pd.concat([p24, p25], ignore_index=True)
     partido_jugadores = pd.concat([pj24, pj25], ignore_index=True)
     
-    print(f"📊 Total: {len(partidos)} partidos, {len(partido_jugadores)} PJ")
-    print(f"🏷️ Temporadas en partidos: {partidos['temporada'].unique() if 'temporada' in partidos.columns else 'NO'}")
-    print(f"🏷️ Temporadas en PJ: {partido_jugadores['temporada'].unique() if 'temporada' in partido_jugadores.columns else 'NO'}")
-
-    if "equipo_ganador" not in partidos.columns:
-        partidos["equipo_ganador"] = partidos.apply(
-            lambda x: 1 if x["juegos_equipo1"] > x["juegos_equipo2"] else 2, axis=1
-        )
-
+    partidos["equipo_ganador"] = np.where(partidos["juegos_equipo1"] > partidos["juegos_equipo2"], 1, 2)
     return jugadores, partidos, partido_jugadores
 
 @st.cache_data
-def construir_df(jugadores, partidos, partido_jugadores):
-    print("🔍 DEBUG: Construyendo DF CORREGIDO...")
+def construir_df(jugadores, partidos, partido_jugadores):  # ← SIMPLIFICADA
+    df = partido_jugadores.merge(jugadores[['id_jugador','nombre']], on='id_jugador')
+    df = df.merge(partidos, on='id_partido')
+    df['temporada'] = df['temporada'].fillna('2024/25')
     
-    # LIMPIAR DUPLICADOS
-    partidos_clean = partidos.drop_duplicates(subset=['id_partido'])
-    pj_clean = partido_jugadores.drop_duplicates()
-    
-    print(f"🔍 Partidos limpios: {len(partidos_clean)}")
-    print(f"🔍 PJ limpios: {len(pj_clean)}")
-    
-    # MERGE PASO A PASO
-    df = pj_clean.merge(jugadores[['id_jugador', 'nombre']], on="id_jugador", how='left')
-    df = df.merge(partidos_clean, on="id_partido", how='left')
-    
-    # TEMPORADA LIMPIA
-    if 'temporada_x' in df.columns:
-        df['temporada'] = df['temporada_x'].fillna(df.get('temporada_y', 'Sin temporada'))
-    else:
-        df['temporada'] = df['temporada'].fillna('Sin temporada')
-    
-    # CÁLCULOS VECTORIZADOS (RÁPIDOS Y CORRECTOS)
     df['victoria'] = (df['equipo'] == df['equipo_ganador']).astype(int)
-    df['juegos_ganados'] = np.where(df['equipo'] == 1, df['juegos_equipo1'], df['juegos_equipo2'])
-    df['juegos_perdidos'] = np.where(df['equipo'] == 1, df['juegos_equipo2'], df['juegos_equipo1'])
-    
-    # DIAGNÓSTICO FINAL (SIN ASSERT)
-    partidos_unicos = df['id_partido'].nunique()
-    filas_total = len(df)
-    pj_promedio = filas_total / partidos_unicos if partidos_unicos > 0 else 0
-    
-    print(f"✅ FINAL: {filas_total} filas, {partidos_unicos} partidos, {pj_promedio:.1f} PJ/partido")
+    df['juegos_ganados'] = np.where(df['equipo']==1, df['juegos_equipo1'], df['juegos_equipo2'])
+    df['juegos_perdidos'] = np.where(df['equipo']==1, df['juegos_equipo2'], df['juegos_equipo1'])
     
     return df
 
 @st.cache_data
 def calcular_clasificacion(df):
-    clas = df.groupby("nombre").agg(
-        partidos_jugados=("id_partido", "count"),
+    # 1 PARTIDO = 1 VICTORIA por jugador
+    df_partidos = df.groupby(['nombre', 'id_partido', 'temporada']).agg({
+        'victoria': 'first',
+        'juegos_ganados': 'first', 
+        'juegos_perdidos': 'first',
+        'id_jornada': 'first'
+    }).reset_index()
+    
+    clas = df_partidos.groupby("nombre").agg(
+        partidos_jugados=("id_partido", "nunique"),
         victorias=("victoria", "sum"),
         juegos_ganados=("juegos_ganados", "sum"),
         juegos_perdidos=("juegos_perdidos", "sum"),
@@ -109,14 +82,11 @@ def calcular_clasificacion(df):
     clas["diferencia_juegos"] = clas["juegos_ganados"] - clas["juegos_perdidos"]
     clas["derrotas"] = clas["partidos_jugados"] - clas["victorias"]
     clas["porcentaje_victorias"] = (clas["victorias"] / clas["partidos_jugados"] * 100).round(1)
+    
     total_jornadas = df["id_jornada"].nunique()
     clas["jornadas"] = clas["jornadas_participadas"].astype(str) + "/" + str(total_jornadas)
-    clas = clas.sort_values(
-        by=["porcentaje_victorias", "diferencia_juegos", "juegos_ganados"],
-        ascending=False
-    ).reset_index(drop=True)
-    clas.index = clas.index + 1
-    return clas
+    
+    return clas.sort_values(["porcentaje_victorias", "diferencia_juegos"], ascending=False).reset_index(drop=True)
 
 @st.cache_data
 def calcular_ranking_por_jornada(df):
