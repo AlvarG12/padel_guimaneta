@@ -63,31 +63,40 @@ def cargar_datos(base_path="data/"):
 
 @st.cache_data
 def construir_df(jugadores, partidos, partido_jugadores):
-    # Merge paso a paso
-    df = partido_jugadores.merge(jugadores, on="id_jugador")
-    df = df.merge(partidos, on="id_partido")
+    print("🔍 DEBUG: Construyendo DF CORREGIDO...")
     
-    # LIMPIAR COLUMNA TEMPORADA (elige una y elimina duplicados)
+    # 1. VERIFICAR DUPLICADOS EN ID_PARTIDO
+    print(f"🔍 Partidos únicos: {partidos['id_partido'].nunique()}/{len(partidos)}")
+    print(f"🔍 PJ por partido: {partido_jugadores.groupby('id_partido').size().describe()}")
+    
+    # 2. MERGE ANTI-DUPLICADOS
+    # Primero PJ + JUGADORES
+    df_pj_jug = partido_jugadores.merge(jugadores[['id_jugador', 'nombre']], on="id_jugador")
+    
+    # Luego JOIN con PARTIDOS (usar merge con validación)
+    df = df_pj_jug.merge(
+        partidos[['id_partido', 'id_jornada', 'juegos_equipo1', 'juegos_equipo2', 
+                 'comentario', 'fecha', 'sede', 'equipo_ganador', 'temporada']], 
+        on="id_partido", how='left'
+    )
+    
+    # 3. LIMPIAR TEMPORADA
     if 'temporada_x' in df.columns and 'temporada_y' in df.columns:
-        # Ambas existen, usar la de PJ (más confiable)
-        df['temporada'] = df['temporada_x']
+        df['temporada'] = df['temporada_x'].fillna(df['temporada_y'])
         df = df.drop(['temporada_x', 'temporada_y'], axis=1)
-    elif 'temporada' in df.columns:
-        pass  # Ya está bien
-    else:
-        df['temporada'] = 'Sin temporada'
-    
-    # LIMPIAR NaN en temporada
     df['temporada'] = df['temporada'].fillna('Sin temporada')
     
-    # CÁLCULOS
+    # 4. VERIFICAR FILAS FINALES
+    print(f"📊 DF FINAL: {len(df)} filas, {df['id_partido'].nunique()} partidos únicos")
+    print(f"🎯 Jugadores por partido: {df.groupby('id_partido').size().mean():.1f}")
+    
+    # 5. CÁLCULOS (SOLO UNA VEZ POR FILA)
     df["victoria"] = df["equipo"] == df["equipo_ganador"]
-    df["juegos_ganados"] = df.apply(
-        lambda x: x["juegos_equipo1"] if x["equipo"] == 1 else x["juegos_equipo2"], axis=1
-    )
-    df["juegos_perdidos"] = df.apply(
-        lambda x: x["juegos_equipo2"] if x["equipo"] == 1 else x["juegos_equipo1"], axis=1
-    )
+    df["juegos_ganados"] = np.where(df["equipo"] == 1, df["juegos_equipo1"], df["juegos_equipo2"])
+    df["juegos_perdidos"] = np.where(df["equipo"] == 1, df["juegos_equipo2"], df["juegos_equipo1"])
+    
+    # 6. VERIFICAR CONSISTENCIA
+    assert len(df) == 4 * df['id_partido'].nunique(), "❌ ERROR: Filas no coinciden con 4 PJ/partido"
     
     return df
 
