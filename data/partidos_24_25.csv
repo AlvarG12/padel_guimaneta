@@ -1,0 +1,131 @@
+id_partido,id_jornada,juegos_equipo1,juegos_equipo2,comentario,fecha,sede,equipo_ganador
+1,1,2,1,,2025-02-02,Emilio Arrieta,1
+2,1,2,0,,2025-02-02,Emilio Arrieta,1
+3,1,1,2,,2025-02-02,Emilio Arrieta,2
+4,1,2,0,,2025-02-02,Emilio Arrieta,1
+5,1,2,1,,2025-02-02,Emilio Arrieta,1
+6,1,1,2,TOP,2025-02-02,Emilio Arrieta,2
+7,1,0,2,,2025-02-02,Emilio Arrieta,2
+8,2,2,1,,2025-02-07,Moscatelares,1
+9,2,2,1,,2025-02-07,Moscatelares,1
+10,2,0,2,,2025-02-07,Moscatelares,2
+11,2,0,2,,2025-02-07,Moscatelares,2
+12,2,2,1,,2025-02-07,Moscatelares,1
+13,2,2,0,,2025-02-07,Moscatelares,1
+14,2,0,2,,2025-02-07,Moscatelares,2
+15,2,1,2,,2025-02-07,Moscatelares,2
+16,2,1,2,,2025-02-07,Moscatelares,2
+17,2,0,2,,2025-02-07,Moscatelares,2
+18,3,0,2,,2025-02-09,Moscatelares,2
+19,3,2,0,,2025-02-09,Moscatelares,1
+20,3,1,2,,2025-02-09,Moscatelares,2
+21,3,0,2,,2025-02-09,Moscatelares,2
+22,3,2,0,,2025-02-09,Moscatelares,1
+23,3,2,1,,2025-02-09,Moscatelares,1
+24,3,2,0,,2025-02-09,Moscatelares,1
+25,3,0,2,TOP,2025-02-09,Moscatelares,2
+26,3,2,0,,2025-02-09,Moscatelares,1
+27,3,2,1,,2025-02-09,Moscatelares,1
+28,3,2,1,,2025-02-09,Moscatelares,1
+29,3,1,2,TOP,2025-02-09,Moscatelares,2
+30,4,2,0,,2025-02-16,Moscatelares,1
+31,4,2,1,,2025-02-16,Moscatelares,1
+32,4,0,2,,2025-02-16,Moscatelares,2
+33,4,1,2,,2025-02-16,Moscatelares,2
+34,4,2,0,,2025-02-16,Moscatelares,1
+35,4,0,2,,2025-02-16,Moscatelares,2
+36,4,2,1,,2025-02-16,Moscatelares,1
+37,4,1,2,,2025-02-16,Moscatelares,2
+38,4,0,2,,2025-02-16,Moscatelares,2
+39,4,2,0,,2025-02-16,Moscatelares,1
+40,4,2,1,,2025-02-16,Moscatelares,1
+41,4,2,1,,2025-02-16,Moscatelares,1
+42,4,0,2,,2025-02-16,Moscatelares,2
+43,4,2,0,,2025-02-16,Moscatelares,1
+44,5,2,0,,2025-02-21,Emilio Arrieta,1
+45,5,2,1,,2025-02-21,Emilio Arrieta,1
+46,5,1,2,,2025-02-21,Emilio Arrieta,2
+47,5,2,1,,2025-02-21,Emilio Arrieta,1
+48,5,2,0,,2025-02-21,Emilio Arrieta,1
+49,5,1,2,,2025-02-21,Emilio Arrieta,2
+50,5,2,1,,2025-02-21,Emilio Arrieta,1
+51,6,0,2,,2025-02-28,Residencial La Duquesa,2
+52,6,0,2,,2025-02-28,Residencial La Duquesa,2
+53,6,2,0,,2025-02-28,Residencial La Duquesa,1
+54,6,0,2,,2025-02-28,Residencial La Duquesa,2
+55,6,1,2,,2025-02-28,Residencial La Duquesa,2
+56,6,2,1,,2025-02-28,Residencial La Duquesa,1
+57,7,2,1,,2025-04-27,Moscatelares,1
+58,7,2,0,,2025-04-27,Moscatelares,1
+59,7,2,0,,2025-04-27,Moscatelares,1
+60,7,0,2,,2025-04-27,Moscatelares,2
+61,7,1,2,,2025-04-27,Moscatelares,2
+62,7,0,2,,2025-04-27,Moscatelares,2
+63,7,2,0,,2025-04-27,Moscatelares,1
+64,7,2,0,,2025-04-27,Moscatelares,1
+65,7,1,2,,2025-04-27,Moscatelares,2
+66,8,0,2,,2025-05-16,Moscatelares,2
+67,8,2,0,,2025-05-16,Moscatelares,1
+68,8,0,2,,2025-05-16,Moscatelares,2
+69,8,1,2,,2025-05-16,Moscatelares,2
+70,8,2,1,,2025-05-16,Moscatelares,1
+71,8,2,0,,2025-05-16,Moscatelares,1
+72,8,0,2,,2025-05-16,Moscatelares,2
+73,8,2,1,,2025-05-16,Moscatelares,1
+74,9,2,0,TOP,2025-07-04,Moscatelares,1
+75,9,1,2,,2025-07-04,Moscatelares,2
+76,9,2,1,,2025-07-04,Moscatelares,1
+77,9,2,0,60-0 60-0,2025-07-04,Moscatelares,1
+78,9,2,1,,2025-07-04,Moscatelares,1
+79,9,2,1,,2025-07-04,Moscatelares,1
+80,10,2,0,,2025-08-03,Moscatelares,1
+81,10,2,0,60-0 60-0,2025-08-03,Moscatelares,1
+82,10,2,1,,2025-08-03,Moscatelares,1
+83,10,2,1,TOP,2025-08-03,Moscatelares,1
+84,10,2,1,TOP,2025-08-03,Moscatelares,1
+85,11,0,2,,2025-08-26,Moscatelares,2
+86,11,2,1,,2025-08-26,Moscatelares,1
+87,11,2,0,,2025-08-26,Moscatelares,1
+88,11,2,0,60-0 60-0,2025-08-26,Moscatelares,1
+89,11,1,2,,2025-08-26,Moscatelares,2
+90,11,1,2,,2025-08-26,Moscatelares,2
+91,12,1,2,,2025-09-01,Moscatelares,2
+92,12,2,0,,2025-09-01,Moscatelares,1
+93,12,2,1,TOP,2025-09-01,Moscatelares,1
+94,12,0,2,,2025-09-01,Moscatelares,2
+95,12,2,0,,2025-09-01,Moscatelares,1
+96,12,2,0,,2025-09-01,Moscatelares,1
+97,12,2,1,TOP,2025-09-01,Moscatelares,1
+98,13,1,2,,2025-09-05,Moscatelares,2
+99,13,0,2,,2025-09-05,Moscatelares,2
+100,13,2,0,,2025-09-05,Moscatelares,1
+101,13,1,2,,2025-09-05,Moscatelares,2
+102,13,2,1,,2025-09-05,Moscatelares,1
+103,13,0,2,,2025-09-05,Moscatelares,2
+104,13,1,2,,2025-09-05,Moscatelares,2
+105,13,2,0,,2025-09-05,Moscatelares,1
+106,13,0,2,,2025-09-05,Moscatelares,2
+107,14,1,2,,2025-09-11,Moscatelares,2
+108,14,2,0,,2025-09-11,Moscatelares,1
+109,14,2,0,,2025-09-11,Moscatelares,1
+110,14,2,0,,2025-09-11,Moscatelares,1
+111,14,0,2,,2025-09-11,Moscatelares,2
+112,14,0,2,,2025-09-11,Moscatelares,2
+113,14,1,2,,2025-09-11,Moscatelares,2
+114,14,2,1,,2025-09-11,Moscatelares,1
+115,14,2,1,,2025-09-11,Moscatelares,1
+116,14,0,2,,2025-09-11,Moscatelares,2
+117,14,1,2,,2025-09-11,Moscatelares,2
+118,15,0,2,,2025-11-01,Moscatelares,2
+119,15,0,2,,2025-11-01,Moscatelares,2
+120,15,2,0,,2025-11-01,Moscatelares,1
+121,15,0,2,,2025-11-01,Moscatelares,2
+122,15,2,0,,2025-11-01,Moscatelares,1
+123,15,2,1,,2025-11-01,Moscatelares,1
+124,16,2,0,,2025-11-20,Moscatelares,1
+125,16,2,1,,2025-11-20,Moscatelares,1
+126,16,2,0,,2025-11-20,Moscatelares,1
+127,16,2,1,,2025-11-20,Moscatelares,1
+128,16,1,2,,2025-11-20,Moscatelares,2
+129,16,0,2,,2025-11-20,Moscatelares,2
+130,16,0,2,,2025-11-20,Moscatelares,2
