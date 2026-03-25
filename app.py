@@ -18,57 +18,6 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
-# SIDEBAR (VERSIÓN CORREGIDA)
-# ─────────────────────────────────────────────
-
-with st.sidebar:
-    st.markdown("""
-    <p class="main-title">🎾 GUIMANETA</p>
-    <p class="sub-title">LIGA DE PÁDEL · PANEL ESTADÍSTICO</p>
-    """, unsafe_allow_html=True)
-    st.divider()
-
-    try:
-        jugadores, partidos, partido_jugadores = cargar_datos()
-        df_completo = construir_df(jugadores, partidos, partido_jugadores)
-        
-        # Verificar que temporada existe y obtener lista segura
-        if 'temporada' in df_completo.columns and not df_completo['temporada'].isna().all():
-            temporadas = ["Todas"] + sorted(df_completo["temporada"].dropna().unique().tolist())
-        else:
-            temporadas = ["Todas"]
-            st.warning("⚠️ No se detectaron temporadas - mostrando todos los datos")
-            
-        temporada_sel = st.selectbox("📅 Temporada", temporadas)
-        
-        # Filtrar datos de forma segura
-        if temporada_sel == "Todas" or temporada_sel not in df_completo["temporada"].values:
-            df = df_completo
-        else:
-            df = df_completo[df_completo["temporada"] == temporada_sel].copy()
-            
-    except Exception as e:
-        st.error(f"❌ Error cargando datos: {e}\n\n**Verifica que los archivos estén en `/data/`**")
-        st.stop()
-
-    st.divider()
-    st.markdown("**🧭 Navegación**")
-    seccion = st.radio(
-        label="",
-        options=["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"],
-        label_visibility="collapsed"
-    )
-    st.divider()
-    
-    # Métricas de resumen seguras
-    if not df.empty:
-        total_partidos = df["id_partido"].nunique()
-        total_jornadas = df["id_jornada"].nunique()
-        st.caption(f"🗓️ Jornadas: **{total_jornadas}** · Partidos: **{total_partidos}**")
-    else:
-        st.caption("📊 Sin datos disponibles")
-
-# ─────────────────────────────────────────────
 # CARGA DE DATOS (Adaptada específicamente a tus archivos)
 # ─────────────────────────────────────────────
 
@@ -713,3 +662,54 @@ elif seccion == "📊 Gráficas":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
+
+# ─────────────────────────────────────────────
+# SIDEBAR (VERSIÓN CORREGIDA)
+# ─────────────────────────────────────────────
+
+with st.sidebar:
+    st.markdown("""
+    <p class="main-title">🎾 GUIMANETA</p>
+    <p class="sub-title">LIGA DE PÁDEL · PANEL ESTADÍSTICO</p>
+    """, unsafe_allow_html=True)
+    st.divider()
+
+    try:
+        jugadores, partidos, partido_jugadores = cargar_datos()
+        df_completo = construir_df(jugadores, partidos, partido_jugadores)
+        
+        # Verificar que temporada existe y obtener lista segura
+        if 'temporada' in df_completo.columns and not df_completo['temporada'].isna().all():
+            temporadas = ["Todas"] + sorted(df_completo["temporada"].dropna().unique().tolist())
+        else:
+            temporadas = ["Todas"]
+            st.warning("⚠️ No se detectaron temporadas - mostrando todos los datos")
+            
+        temporada_sel = st.selectbox("📅 Temporada", temporadas)
+        
+        # Filtrar datos de forma segura
+        if temporada_sel == "Todas" or temporada_sel not in df_completo["temporada"].values:
+            df = df_completo
+        else:
+            df = df_completo[df_completo["temporada"] == temporada_sel].copy()
+            
+    except Exception as e:
+        st.error(f"❌ Error cargando datos: {e}\n\n**Verifica que los archivos estén en `/data/`**")
+        st.stop()
+
+    st.divider()
+    st.markdown("**🧭 Navegación**")
+    seccion = st.radio(
+        label="",
+        options=["🏆 Clasificación", "👤 Perfil Jugador", "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", "📊 Gráficas"],
+        label_visibility="collapsed"
+    )
+    st.divider()
+    
+    # Métricas de resumen seguras
+    if not df.empty:
+        total_partidos = df["id_partido"].nunique()
+        total_jornadas = df["id_jornada"].nunique()
+        st.caption(f"🗓️ Jornadas: **{total_jornadas}** · Partidos: **{total_partidos}**")
+    else:
+        st.caption("📊 Sin datos disponibles")
