@@ -729,18 +729,18 @@ elif seccion == "🔥 Rachas":
             st.markdown(
                 f'''
                 <div style="
-                    background:{color}15;
-                    border:1px solid {color};
-                    border-radius:10px;
+                    background:#161b22;
+                    border-left:4px solid {color};
+                    border-radius:8px;
                     padding:10px 14px;
                     margin-bottom:8px;
                 ">
-                    <b style="color:#e6edf3; font-size:15px;">
+                    <div style="color:#ffffff; font-weight:600; font-size:15px;">
                         {emoji} {r["nombre"]}
-                    </b><br/>
-                    <span style="color:#8b949e; font-size:14px;">
+                    </div>
+                    <div style="color:#8b949e; font-size:14px;">
                         {r["longitud"]} {r["tipo_racha"]}
-                    </span>
+                    </div>
                 </div>
                 ''',
                 unsafe_allow_html=True
