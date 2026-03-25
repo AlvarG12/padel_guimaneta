@@ -325,7 +325,7 @@ if seccion == "🏆 Clasificación":
     lider = clasificacion.iloc[0]
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("🥇 Líder", lider["nombre"], f"{lider['porcentaje_victorias']}% victorias")
-    col2.metric("📊 Partidos jugados", clasificacion["partidos_jugados"].sum() // 2)
+    col2.metric("📊 Partidos jugados", df["id_partido"].nunique())
     col3.metric("🗓️ Jornadas", df["id_jornada"].nunique())
     col4.metric("👥 Jugadores", len(clasificacion))
 
