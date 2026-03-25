@@ -335,7 +335,7 @@ if seccion == "🏆 Clasificación":
     tabla = clasificacion[["nombre", "partidos_jugados", "victorias", "derrotas",
                             "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
                             "porcentaje_victorias", "jornadas"]].copy()
-    tabla.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V", "Jornadas"]
+    tabla.columns = ["Jugador", "Partidos Jugados", "Victorias", "Derrotas", "+/- Juegos", "Juegos Ganados", "Juegos Perdidos", "% Victorias", "Jornadas"]
 
     st.dataframe(
         tabla.style
