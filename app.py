@@ -1647,4 +1647,3 @@ elif seccion == "💻 Predictor":
                 <span style="color:#238636;font-weight:700;font-size:1rem;">{int(peso*100)}%</span>
             </div>
             """, unsafe_allow_html=True)
-        st.caption("Selecciona los jugadores y pulsa **Calcular predicción** para ver el resultado.")
