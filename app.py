@@ -1582,7 +1582,7 @@ elif seccion == "💻 Predictor":
 
         for feature, peso in PESOS.items():
 
-            # 🔥 SI NO EXISTE (porque no hay datos) → SKIP
+            # 🔥 SI NO EXISTE → SKIP
             if feature not in desglose:
                 continue
 
@@ -1596,21 +1596,29 @@ elif seccion == "💻 Predictor":
             bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
             bar_eq2 = 100 - bar_eq1
 
-            # 🔥 texto dinámico SOLO si hay datos
+            # 🔥 INFO EXTRA H2H EXACTO
+            extra_h2h = ""
             if feature == "H2H pareja exacta":
                 if n_exactos > 0:
-                    nota = f"<div style='color:#8b949e;font-size:0.75rem;margin-top:4px;'>📊 {n_exactos} partidos exactos</div>"
-                else:
-                    nota = ""
-            else:
-                nota = ""
+                    wins_eq1 = int(round(v1 * n_exactos))
+                    wins_eq2 = n_exactos - wins_eq1
+
+                    extra_h2h = f"""
+                    <div style='display:flex;justify-content:space-between;
+                                font-size:0.85rem;margin-top:6px;'>
+                        <span style='color:#1f6feb;font-weight:600;'>{nombre_eq1}: {wins_eq1} victorias</span>
+                        <span style='color:#da3633;font-weight:600;'>{nombre_eq2}: {wins_eq2} victorias</span>
+                    </div>
+                    <div style='color:#8b949e;font-size:0.75rem;margin-top:2px;'>
+                        📊 {n_exactos} partidos exactos
+                    </div>
+                    """
 
             st.markdown(f"""
             <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
                         padding:12px 16px;margin-bottom:8px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                     <span style="color:#e6edf3;font-weight:600;">{icono} {feature}</span>
-                    <span style="color:#8b949e;font-size:0.8rem;">peso: {int(peso*100)}%</span>
                 </div>
                 <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px;">
                     <div style="width:{bar_eq1:.1f}%;background:#1f6feb;"></div>
@@ -1620,7 +1628,7 @@ elif seccion == "💻 Predictor":
                     <span style="color:{color1};font-weight:600;">{nombre_eq1}: {v1*100:.1f}%</span>
                     <span style="color:{color2};font-weight:600;">{nombre_eq2}: {v2*100:.1f}%</span>
                 </div>
-                {nota}
+                {extra_h2h}
             </div>
             """, unsafe_allow_html=True)
  
