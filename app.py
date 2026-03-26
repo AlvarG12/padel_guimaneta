@@ -547,7 +547,7 @@ PESOS = {
     "H2H pareja exacta":         0.30,
     "H2H individual":            0.10,
     "Rendimiento como pareja":   0.22,
-    "Forma reciente (5p)":       0.20,
+    "Forma reciente (5 partidos)":0.20,
     "Winrate histórico":         0.13,
     "Diferencia de juegos":      0.05,
 }
@@ -680,7 +680,7 @@ def calcular_score(df_ref, eq1, eq2):
         _winrate_pareja(df_ref, eq2[0], eq2[1])
     )
 
-    vals["Forma reciente (5p)"] = (
+    vals["Forma reciente (5 partidos)"] = (
         (_forma_reciente(df_ref, eq1[0]) + _forma_reciente(df_ref, eq1[1])) / 2,
         (_forma_reciente(df_ref, eq2[0]) + _forma_reciente(df_ref, eq2[1])) / 2
     )
