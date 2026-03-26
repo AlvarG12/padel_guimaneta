@@ -531,7 +531,7 @@ def predecir_partido(pipeline, df_hist, eq1, eq2, feature_cols):
  
     desglose = {
         "Winrate histórico": (wr_eq1, wr_eq2),
-        "Forma reciente (5p)": (forma_eq1, forma_eq2),
+        "Forma reciente (5 partidos)": (forma_eq1, forma_eq2),
         "Rendimiento como pareja": (pareja_eq1, pareja_eq2),
         "Head-to-head directo": (h2h_eq1, h2h_eq2),
         "Diferencia de juegos": (
