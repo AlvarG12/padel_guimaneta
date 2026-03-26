@@ -542,6 +542,130 @@ def predecir_partido(pipeline, df_hist, eq1, eq2, feature_cols):
  
     return prob[1], prob[0], desglose  # prob_eq1, prob_eq2, desglose
 
+PESOS = {
+    "Head-to-head directo":      0.35,
+    "Rendimiento como pareja":   0.25,
+    "Winrate histórico":         0.20,
+    "Forma reciente (5p)":       0.15,
+    "Diferencia de juegos":      0.05,
+}
+ 
+# ─────────────────────────────────────────────────────────────────────────────
+# FUNCIONES DE FEATURES (reutilizables)
+# ─────────────────────────────────────────────────────────────────────────────
+ 
+def _winrate(df, nombre):
+    sub = df[df["nombre"] == nombre]
+    return sub["victoria"].mean() if len(sub) > 0 else 0.5
+ 
+def _forma_reciente(df, nombre, n=5):
+    sub = df[df["nombre"] == nombre].copy()
+    sub["_n"] = sub["id_partido"].astype(str).str.split("_").str[0].astype(int)
+    sub = sub.sort_values(["id_jornada", "_n"]).tail(n)
+    return sub["victoria"].mean() if len(sub) > 0 else 0.5
+ 
+def _winrate_pareja(df, j1, j2):
+    s1 = df[df["nombre"] == j1][["id_partido", "equipo", "victoria"]]
+    s2 = df[df["nombre"] == j2][["id_partido", "equipo"]]
+    juntos = s1.merge(s2, on=["id_partido", "equipo"])
+    return juntos["victoria"].mean() if len(juntos) > 0 else 0.5
+ 
+def _h2h(df, eq1, eq2):
+    """% victorias de eq1 contra eq2 en enfrentamientos directos (cualquier combinación)"""
+    wins, total = 0, 0
+    for a in eq1:
+        for d in eq2:
+            for e_a, e_d in [(1, 2), (2, 1)]:
+                sa = df[(df["nombre"] == a) & (df["equipo"] == e_a)]
+                sd = df[(df["nombre"] == d) & (df["equipo"] == e_d)]
+                enf = sa.merge(sd, on="id_partido", suffixes=("_a", "_d"))
+                wins += enf["victoria_a"].sum()
+                total += len(enf)
+    return wins / total if total > 0 else 0.5
+ 
+def _diff_juegos_norm(df, nombre):
+    sub = df[df["nombre"] == nombre]
+    if len(sub) == 0:
+        return 0.5
+    g = sub["juegos_ganados"].sum()
+    p = sub["juegos_perdidos"].sum()
+    total = g + p
+    return (g / total) if total > 0 else 0.5
+ 
+def calcular_score(df_ref, eq1, eq2):
+    """
+    Devuelve (score_eq1, score_eq2, desglose) usando pesos fijos.
+    score_eq1 + score_eq2 = 1.0
+    """
+    vals = {}
+    vals["Head-to-head directo"]    = (_h2h(df_ref, eq1, eq2),       _h2h(df_ref, eq2, eq1))
+    vals["Rendimiento como pareja"] = (_winrate_pareja(df_ref, eq1[0], eq1[1]),
+                                       _winrate_pareja(df_ref, eq2[0], eq2[1]))
+    vals["Winrate histórico"]       = ((_winrate(df_ref, eq1[0]) + _winrate(df_ref, eq1[1])) / 2,
+                                       (_winrate(df_ref, eq2[0]) + _winrate(df_ref, eq2[1])) / 2)
+    vals["Forma reciente (5p)"]     = ((_forma_reciente(df_ref, eq1[0]) + _forma_reciente(df_ref, eq1[1])) / 2,
+                                       (_forma_reciente(df_ref, eq2[0]) + _forma_reciente(df_ref, eq2[1])) / 2)
+    vals["Diferencia de juegos"]    = (_diff_juegos_norm(df_ref, eq1[0]) * 0.5 + _diff_juegos_norm(df_ref, eq1[1]) * 0.5,
+                                       _diff_juegos_norm(df_ref, eq2[0]) * 0.5 + _diff_juegos_norm(df_ref, eq2[1]) * 0.5)
+ 
+    score_eq1, score_eq2 = 0.0, 0.0
+    for feature, peso in PESOS.items():
+        v1, v2 = vals[feature]
+        total = v1 + v2
+        if total == 0:
+            p1, p2 = 0.5, 0.5
+        else:
+            p1, p2 = v1 / total, v2 / total
+        score_eq1 += peso * p1
+        score_eq2 += peso * p2
+ 
+    # Normalizar por si hay pequeñas desviaciones
+    total_score = score_eq1 + score_eq2
+    score_eq1 /= total_score
+    score_eq2 /= total_score
+ 
+    return score_eq1, score_eq2, vals
+ 
+ 
+@st.cache_data
+def validacion_historica(df_hist):
+    """
+    Aplica el modelo de pesos fijos a cada partido histórico
+    usando solo datos ANTERIORES a ese partido.
+    Devuelve accuracy.
+    """
+    partidos_ord = df_hist.drop_duplicates("id_partido").copy()
+    partidos_ord["_n"] = partidos_ord["id_partido"].astype(str).str.split("_").str[0].astype(int)
+    partidos_ord = partidos_ord.sort_values(["id_jornada", "_n"])
+ 
+    correctos, total, ids_vistos = 0, 0, []
+ 
+    for _, row in partidos_ord.iterrows():
+        pid = row["id_partido"]
+        jugadores_p = df_hist[df_hist["id_partido"] == pid]
+        eq1 = jugadores_p[jugadores_p["equipo"] == 1]["nombre"].tolist()
+        eq2 = jugadores_p[jugadores_p["equipo"] == 2]["nombre"].tolist()
+ 
+        if len(eq1) != 2 or len(eq2) != 2:
+            ids_vistos.append(pid)
+            continue
+ 
+        df_antes = df_hist[df_hist["id_partido"].isin(ids_vistos)]
+ 
+        # Con muy pocos datos anteriores, saltamos (primeras jornadas)
+        if len(df_antes) < 8:
+            ids_vistos.append(pid)
+            continue
+ 
+        s1, s2, _ = calcular_score(df_antes, eq1, eq2)
+        prediccion = 1 if s1 >= s2 else 2
+        if prediccion == row["equipo_ganador"]:
+            correctos += 1
+        total += 1
+        ids_vistos.append(pid)
+ 
+    return correctos / total if total > 0 else 0.0, total
+
 # ─────────────────────────────────────────────
 # SIDEBAR (VERSIÓN OPTIMIZADA)
 # ─────────────────────────────────────────────
@@ -1275,26 +1399,22 @@ elif seccion == "📊 Gráficas":
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECCIÓN: PREDICTOR ML
+# SECCIÓN: PREDICTOR
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "🤖 Predictor":
     st.markdown("## 🤖 Predictor de Partido")
-    st.caption("Modelo: Logistic Regression entrenado con datos históricos reales · Features calculadas sin data leakage")
+    st.caption("Modelo de scoring ponderado · Pesos definidos por lógica deportiva · Validado con datos históricos reales")
  
-    # Usar siempre el histórico completo para el modelo
     df_hist = df_completo.copy()
-    df_hist["_id_num"] = df_hist["id_partido"].astype(str).str.split("_").str[0].astype(int)
  
-    # Entrenar modelo
-    with st.spinner("⚙️ Entrenando modelo con datos históricos..."):
-        df_features = construir_features_ml(df_hist)
-        pipeline, acc_media, acc_std, feature_cols, coefs = entrenar_modelo(df_features)
+    # Validación histórica (cacheada)
+    with st.spinner("⚙️ Validando modelo con datos históricos..."):
+        acc, n_validados = validacion_historica(df_hist)
  
     nombres_todos = sorted(df_hist["nombre"].unique())
  
+    # ── Selectores ──
     st.divider()
- 
-    # ── Selectores de equipo ──
     col_eq1, col_vs, col_eq2 = st.columns([5, 1, 5])
  
     with col_eq1:
@@ -1308,100 +1428,115 @@ elif seccion == "🤖 Predictor":
  
     with col_eq2:
         st.markdown("#### 🔴 Equipo 2")
-        disponibles_eq2 = [j for j in nombres_todos if j not in [j1a, j1b]]
-        j2a = st.selectbox("Jugador C", disponibles_eq2, key="j2a")
-        j2b = st.selectbox("Jugador D", [j for j in disponibles_eq2 if j != j2a], key="j2b")
- 
-    st.divider()
+        disp2 = [j for j in nombres_todos if j not in [j1a, j1b]]
+        j2a = st.selectbox("Jugador C", disp2, key="j2a")
+        j2b = st.selectbox("Jugador D", [j for j in disp2 if j != j2a], key="j2b")
  
     eq1 = [j1a, j1b]
     eq2 = [j2a, j2b]
  
+    st.divider()
+ 
     if st.button("🎯 Calcular predicción", use_container_width=True, type="primary"):
  
-        prob_eq1, prob_eq2, desglose = predecir_partido(pipeline, df_hist, eq1, eq2, feature_cols)
+        prob_eq1, prob_eq2, desglose = calcular_score(df_hist, eq1, eq2)
  
         pct1 = round(prob_eq1 * 100, 1)
         pct2 = round(prob_eq2 * 100, 1)
- 
-        favorito = f"{eq1[0]} & {eq1[1]}" if pct1 >= pct2 else f"{eq2[0]} & {eq2[1]}"
+        nombre_eq1 = f"{eq1[0]} & {eq1[1]}"
+        nombre_eq2 = f"{eq2[0]} & {eq2[1]}"
+        favorito = nombre_eq1 if pct1 >= pct2 else nombre_eq2
         pct_fav = max(pct1, pct2)
  
-        # ── Resultado principal ──
+        # ── Resultado ──
+        color_fav = "#1f6feb" if pct1 >= pct2 else "#da3633"
         st.markdown(f"""
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:24px 28px;margin-bottom:16px;">
-            <div style="font-family:'Oswald',sans-serif;font-size:1rem;color:#8b949e;letter-spacing:0.08em;margin-bottom:8px;">FAVORITO</div>
-            <div style="font-family:'Oswald',sans-serif;font-size:2rem;color:#ffffff;font-weight:700;">{favorito}</div>
-            <div style="font-size:1.1rem;color:#238636;font-weight:600;margin-top:4px;">{pct_fav}% de probabilidad de victoria</div>
+        <div style="background:#161b22;border:1px solid {color_fav};border-radius:14px;
+                    padding:24px 28px;margin-bottom:16px;">
+            <div style="font-family:'Oswald',sans-serif;font-size:0.9rem;
+                        color:#8b949e;letter-spacing:0.1em;margin-bottom:6px;">FAVORITO</div>
+            <div style="font-family:'Oswald',sans-serif;font-size:2rem;
+                        color:#ffffff;font-weight:700;">{favorito}</div>
+            <div style="font-size:1.1rem;color:{color_fav};font-weight:600;margin-top:4px;">
+                {pct_fav}% de probabilidad de victoria
+            </div>
         </div>
         """, unsafe_allow_html=True)
  
-        # ── Barra visual ──
+        # ── Barra ──
         fig, ax = plt.subplots(figsize=(10, 1.4))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#0d1117")
- 
-        ax.barh(0, pct1, color="#1f6feb", height=0.5, label=f"{eq1[0]} & {eq1[1]}")
-        ax.barh(0, pct2, left=pct1, color="#da3633", height=0.5, label=f"{eq2[0]} & {eq2[1]}")
- 
-        ax.text(pct1 / 2, 0, f"{pct1}%", ha="center", va="center",
-                color="white", fontsize=13, fontweight="bold")
-        ax.text(pct1 + pct2 / 2, 0, f"{pct2}%", ha="center", va="center",
-                color="white", fontsize=13, fontweight="bold")
- 
+        ax.barh(0, pct1, color="#1f6feb", height=0.5)
+        ax.barh(0, pct2, left=pct1, color="#da3633", height=0.5)
+        ax.text(pct1 / 2, 0, f"{nombre_eq1}\n{pct1}%",
+                ha="center", va="center", color="white", fontsize=10, fontweight="bold")
+        ax.text(pct1 + pct2 / 2, 0, f"{nombre_eq2}\n{pct2}%",
+                ha="center", va="center", color="white", fontsize=10, fontweight="bold")
         ax.set_xlim(0, 100)
         ax.axis("off")
-        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2,
-                  facecolor="#161b22", edgecolor="#30363d", labelcolor="#e6edf3", fontsize=10)
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
  
         st.divider()
  
-        # ── Desglose de features ──
+        # ── Desglose por factor ──
         st.markdown("#### 🔍 Desglose por factor")
  
-        nombres_features = ["Winrate histórico", "Forma reciente (5p)", "Rendimiento como pareja",
-                            "Head-to-head directo", "Diferencia de juegos"]
-        importancias = abs(coefs)
-        importancias_norm = importancias / importancias.sum() * 100
+        for feature, peso in PESOS.items():
+            v1, v2 = desglose[feature]
+            ventaja1 = v1 >= v2
+            color1 = "#1f6feb" if ventaja1 else "#8b949e"
+            color2 = "#da3633" if not ventaja1 else "#8b949e"
+            icono = "🔵" if ventaja1 else "🔴"
  
-        for i, (nombre_f, (val_eq1, val_eq2)) in enumerate(desglose.items()):
-            peso = importancias_norm[i]
+            # Mini barra proporcional
+            bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
+            bar_eq2 = 100 - bar_eq1
  
-            ventaja_eq1 = val_eq1 > val_eq2
-            color_eq1 = "#1f6feb" if ventaja_eq1 else "#8b949e"
-            color_eq2 = "#da3633" if not ventaja_eq1 else "#8b949e"
- 
-            st.markdown(
-                f"""
-                <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
-                            padding:12px 16px;margin-bottom:8px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="color:#e6edf3;font-weight:600;">{nombre_f}</span>
-                        <span style="color:#8b949e;font-size:0.8rem;">peso en el modelo: {peso:.1f}%</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;">
-                        <span style="color:{color_eq1};font-weight:600;">{eq1[0]} & {eq1[1]}: {val_eq1*100:.1f}%</span>
-                        <span style="color:{color_eq2};font-weight:600;">{eq2[0]} & {eq2[1]}: {val_eq2*100:.1f}%</span>
-                    </div>
+            st.markdown(f"""
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
+                        padding:12px 16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="color:#e6edf3;font-weight:600;">{icono} {feature}</span>
+                    <span style="color:#8b949e;font-size:0.8rem;">peso: {int(peso*100)}%</span>
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
+                <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px;">
+                    <div style="width:{bar_eq1:.1f}%;background:#1f6feb;"></div>
+                    <div style="width:{bar_eq2:.1f}%;background:#da3633;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
+                    <span style="color:{color1};font-weight:600;">{nombre_eq1}: {v1*100:.1f}%</span>
+                    <span style="color:{color2};font-weight:600;">{nombre_eq2}: {v2*100:.1f}%</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
  
         st.divider()
  
-        # ── Info del modelo ──
-        st.markdown(
-            f"""
-            <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px 16px;">
-                <span style="color:#8b949e;font-size:0.85rem;">
-                    📊 Modelo entrenado con <b style="color:#e6edf3;">{len(df_features)} partidos</b> históricos ·
-                    Accuracy (CV-5): <b style="color:#e6edf3;">{acc_media*100:.1f}% ± {acc_std*100:.1f}%</b>
-                </span>
+        # ── Accuracy del modelo ──
+        acc_color = "#238636" if acc >= 0.60 else "#d29922" if acc >= 0.50 else "#da3633"
+        st.markdown(f"""
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 18px;">
+            <div style="color:#8b949e;font-size:0.85rem;margin-bottom:4px;">📊 Validación histórica del modelo</div>
+            <div style="color:{acc_color};font-size:1.3rem;font-weight:700;">{acc*100:.1f}% de acierto</div>
+            <div style="color:#8b949e;font-size:0.8rem;margin-top:4px;">
+                sobre {n_validados} partidos históricos · excluye las primeras jornadas (sin datos previos suficientes)
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+        </div>
+        """, unsafe_allow_html=True)
+ 
+    else:
+        # Estado inicial — mostrar pesos activos
+        st.markdown("#### ⚖️ Pesos del modelo")
+        for feature, peso in PESOS.items():
+            st.markdown(f"""
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        background:#161b22;border:1px solid #30363d;border-radius:8px;
+                        padding:10px 16px;margin-bottom:6px;">
+                <span style="color:#e6edf3;">{feature}</span>
+                <span style="color:#238636;font-weight:700;font-size:1rem;">{int(peso*100)}%</span>
+            </div>
+            """, unsafe_allow_html=True)
+        st.caption("Selecciona los jugadores y pulsa **Calcular predicción** para ver el resultado.")
