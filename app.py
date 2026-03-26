@@ -593,7 +593,8 @@ with st.sidebar:
             "⚔️ Enfrentamientos",
             "🤝 Parejas",
             "🔥 Rachas",
-            "📊 Gráficas"
+            "📊 Gráficas",
+            "🤖 Predictor"
         ],
         label_visibility="collapsed"
     )
