@@ -326,227 +326,12 @@ def calcular_rachas_historicas(df):
 
     return df_v, df_d
 
-@st.cache_data
-def construir_features_ml(df_hist):
-    """
-    Para cada partido histórico, calcula las features de ambos equipos
-    usando SOLO datos anteriores a ese partido (no data leakage).
-    Devuelve X (features) e y (quien ganó: 1 = equipo1, 0 = equipo2).
-    """
-    partidos_ordenados = df_hist.drop_duplicates("id_partido").copy()
-    partidos_ordenados["_id_num"] = (
-        partidos_ordenados["id_partido"].astype(str).str.split("_").str[0].astype(int)
-    )
-    partidos_ordenados = partidos_ordenados.sort_values(["id_jornada", "_id_num"])
- 
-    filas = []
-    ids_vistos = []
- 
-    for _, partido_row in partidos_ordenados.iterrows():
-        pid = partido_row["id_partido"]
-        jornada = partido_row["id_jornada"]
- 
-        jugadores_partido = df_hist[df_hist["id_partido"] == pid]
-        eq1 = jugadores_partido[jugadores_partido["equipo"] == 1]["nombre"].tolist()
-        eq2 = jugadores_partido[jugadores_partido["equipo"] == 2]["nombre"].tolist()
- 
-        if len(eq1) != 2 or len(eq2) != 2:
-            continue
- 
-        # Datos ANTERIORES a este partido (excluimos el actual)
-        df_antes = df_hist[df_hist["id_partido"].isin(ids_vistos)]
- 
-        def winrate(nombre):
-            sub = df_antes[df_antes["nombre"] == nombre]
-            if len(sub) == 0:
-                return 0.5
-            return sub["victoria"].mean()
- 
-        def forma_reciente(nombre, n=5):
-            sub = df_antes[df_antes["nombre"] == nombre].copy()
-            sub["_id_num"] = sub["id_partido"].astype(str).str.split("_").str[0].astype(int)
-            sub = sub.sort_values(["id_jornada", "_id_num"]).tail(n)
-            if len(sub) == 0:
-                return 0.5
-            return sub["victoria"].mean()
- 
-        def winrate_pareja(j1, j2):
-            sub1 = df_antes[df_antes["nombre"] == j1][["id_partido", "equipo", "victoria"]]
-            sub2 = df_antes[df_antes["nombre"] == j2][["id_partido", "equipo"]]
-            juntos = sub1.merge(sub2, on=["id_partido", "equipo"])
-            if len(juntos) == 0:
-                return 0.5
-            return juntos["victoria"].mean()
- 
-        def h2h(atacantes, defensores):
-            """% victorias de atacantes contra defensores en enfrentamientos directos"""
-            wins, total = 0, 0
-            for a in atacantes:
-                for d in defensores:
-                    sub_a = df_antes[(df_antes["nombre"] == a) & (df_antes["equipo"] == 1)]
-                    sub_d = df_antes[(df_antes["nombre"] == d) & (df_antes["equipo"] == 2)]
-                    enf = sub_a.merge(sub_d, on="id_partido", suffixes=("_a", "_d"))
-                    wins += enf["victoria_a"].sum()
-                    total += len(enf)
- 
-                    sub_a2 = df_antes[(df_antes["nombre"] == a) & (df_antes["equipo"] == 2)]
-                    sub_d2 = df_antes[(df_antes["nombre"] == d) & (df_antes["equipo"] == 1)]
-                    enf2 = sub_a2.merge(sub_d2, on="id_partido", suffixes=("_a", "_d"))
-                    wins += enf2["victoria_a"].sum()
-                    total += len(enf2)
- 
-            return wins / total if total > 0 else 0.5
- 
-        def diff_juegos_norm(nombre):
-            sub = df_antes[df_antes["nombre"] == nombre]
-            if len(sub) == 0:
-                return 0.0
-            diff = (sub["juegos_ganados"].sum() - sub["juegos_perdidos"].sum())
-            total = sub["juegos_ganados"].sum() + sub["juegos_perdidos"].sum()
-            return diff / total if total > 0 else 0.0
- 
-        # ── Calcular features ──
-        wr_eq1 = (winrate(eq1[0]) + winrate(eq1[1])) / 2
-        wr_eq2 = (winrate(eq2[0]) + winrate(eq2[1])) / 2
- 
-        forma_eq1 = (forma_reciente(eq1[0]) + forma_reciente(eq1[1])) / 2
-        forma_eq2 = (forma_reciente(eq2[0]) + forma_reciente(eq2[1])) / 2
- 
-        pareja_eq1 = winrate_pareja(eq1[0], eq1[1])
-        pareja_eq2 = winrate_pareja(eq2[0], eq2[1])
- 
-        h2h_eq1 = h2h(eq1, eq2)
-        h2h_eq2 = h2h(eq2, eq1)
- 
-        diff_eq1 = (diff_juegos_norm(eq1[0]) + diff_juegos_norm(eq1[1])) / 2
-        diff_eq2 = (diff_juegos_norm(eq2[0]) + diff_juegos_norm(eq2[1])) / 2
- 
-        fila = {
-            # Diferencias entre equipos (el modelo aprende de estas diferencias)
-            "wr_diff":      wr_eq1 - wr_eq2,
-            "forma_diff":   forma_eq1 - forma_eq2,
-            "pareja_diff":  pareja_eq1 - pareja_eq2,
-            "h2h_diff":     h2h_eq1 - h2h_eq2,
-            "diff_juegos":  diff_eq1 - diff_eq2,
-            # Target
-            "y": 1 if partido_row["equipo_ganador"] == 1 else 0
-        }
-        filas.append(fila)
-        ids_vistos.append(pid)
- 
-    df_features = pd.DataFrame(filas)
-    return df_features
- 
- 
-@st.cache_data
-def entrenar_modelo(df_features):
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.model_selection import cross_val_score
-    from sklearn.pipeline import Pipeline
-    import numpy as np
- 
-    feature_cols = ["wr_diff", "forma_diff", "pareja_diff", "h2h_diff", "diff_juegos"]
-    X = df_features[feature_cols].values
-    y = df_features["y"].values
- 
-    pipeline = Pipeline([
-        ("scaler", StandardScaler()),
-        ("clf", LogisticRegression(C=0.5, max_iter=1000, random_state=42))
-    ])
- 
-    # Cross-validation para estimar accuracy real
-    scores = cross_val_score(pipeline, X, y, cv=5, scoring="accuracy")
-    pipeline.fit(X, y)
- 
-    coefs = pipeline.named_steps["clf"].coef_[0]
- 
-    return pipeline, scores.mean(), scores.std(), feature_cols, coefs
- 
- 
-def predecir_partido(pipeline, df_hist, eq1, eq2, feature_cols):
-    """Calcula features con TODO el histórico disponible y predice."""
-    import numpy as np
- 
-    def winrate(nombre):
-        sub = df_hist[df_hist["nombre"] == nombre]
-        return sub["victoria"].mean() if len(sub) > 0 else 0.5
- 
-    def forma_reciente(nombre, n=5):
-        sub = df_hist[df_hist["nombre"] == nombre].copy()
-        sub["_id_num"] = sub["id_partido"].astype(str).str.split("_").str[0].astype(int)
-        sub = sub.sort_values(["id_jornada", "_id_num"]).tail(n)
-        return sub["victoria"].mean() if len(sub) > 0 else 0.5
- 
-    def winrate_pareja(j1, j2):
-        sub1 = df_hist[df_hist["nombre"] == j1][["id_partido", "equipo", "victoria"]]
-        sub2 = df_hist[df_hist["nombre"] == j2][["id_partido", "equipo"]]
-        juntos = sub1.merge(sub2, on=["id_partido", "equipo"])
-        return juntos["victoria"].mean() if len(juntos) > 0 else 0.5
- 
-    def h2h(atacantes, defensores):
-        wins, total = 0, 0
-        for a in atacantes:
-            for d in defensores:
-                sub_a = df_hist[(df_hist["nombre"] == a) & (df_hist["equipo"] == 1)]
-                sub_d = df_hist[(df_hist["nombre"] == d) & (df_hist["equipo"] == 2)]
-                enf = sub_a.merge(sub_d, on="id_partido", suffixes=("_a", "_d"))
-                wins += enf["victoria_a"].sum()
-                total += len(enf)
-                sub_a2 = df_hist[(df_hist["nombre"] == a) & (df_hist["equipo"] == 2)]
-                sub_d2 = df_hist[(df_hist["nombre"] == d) & (df_hist["equipo"] == 1)]
-                enf2 = sub_a2.merge(sub_d2, on="id_partido", suffixes=("_a", "_d"))
-                wins += enf2["victoria_a"].sum()
-                total += len(enf2)
-        return wins / total if total > 0 else 0.5
- 
-    def diff_juegos_norm(nombre):
-        sub = df_hist[df_hist["nombre"] == nombre]
-        if len(sub) == 0:
-            return 0.0
-        diff = sub["juegos_ganados"].sum() - sub["juegos_perdidos"].sum()
-        total = sub["juegos_ganados"].sum() + sub["juegos_perdidos"].sum()
-        return diff / total if total > 0 else 0.0
- 
-    wr_eq1 = (winrate(eq1[0]) + winrate(eq1[1])) / 2
-    wr_eq2 = (winrate(eq2[0]) + winrate(eq2[1])) / 2
-    forma_eq1 = (forma_reciente(eq1[0]) + forma_reciente(eq1[1])) / 2
-    forma_eq2 = (forma_reciente(eq2[0]) + forma_reciente(eq2[1])) / 2
-    pareja_eq1 = winrate_pareja(eq1[0], eq1[1])
-    pareja_eq2 = winrate_pareja(eq2[0], eq2[1])
-    h2h_eq1 = h2h(eq1, eq2)
-    h2h_eq2 = h2h(eq2, eq1)
-    diff_eq1 = (diff_juegos_norm(eq1[0]) + diff_juegos_norm(eq1[1])) / 2
-    diff_eq2 = (diff_juegos_norm(eq2[0]) + diff_juegos_norm(eq2[1])) / 2
- 
-    X_pred = np.array([[
-        wr_eq1 - wr_eq2,
-        forma_eq1 - forma_eq2,
-        pareja_eq1 - pareja_eq2,
-        h2h_eq1 - h2h_eq2,
-        diff_eq1 - diff_eq2,
-    ]])
- 
-    prob = pipeline.predict_proba(X_pred)[0]  # [prob_eq2_gana, prob_eq1_gana]
- 
-    desglose = {
-        "Winrate histórico": (wr_eq1, wr_eq2),
-        "Forma reciente (5p)": (forma_eq1, forma_eq2),
-        "Rendimiento como pareja": (pareja_eq1, pareja_eq2),
-        "Head-to-head directo": (h2h_eq1, h2h_eq2),
-        "Diferencia de juegos": (
-            (diff_eq1 + 1) / 2,  # normalizar a [0,1] para mostrar
-            (diff_eq2 + 1) / 2
-        ),
-    }
- 
-    return prob[1], prob[0], desglose  # prob_eq1, prob_eq2, desglose
-
 PESOS = {
-    "Head-to-head directo":      0.35,
-    "Rendimiento como pareja":   0.25,
-    "Winrate histórico":         0.20,
-    "Forma reciente (5p)":       0.15,
+    "H2H pareja exacta":         0.30,
+    "H2H individual":            0.10,
+    "Rendimiento como pareja":   0.22,
+    "Forma reciente (5p)":       0.20,
+    "Winrate histórico":         0.13,
     "Diferencia de juegos":      0.05,
 }
  
@@ -570,8 +355,38 @@ def _winrate_pareja(df, j1, j2):
     juntos = s1.merge(s2, on=["id_partido", "equipo"])
     return juntos["victoria"].mean() if len(juntos) > 0 else 0.5
  
-def _h2h(df, eq1, eq2):
-    """% victorias de eq1 contra eq2 en enfrentamientos directos (cualquier combinación)"""
+def _h2h_pareja_exacta(df, eq1, eq2):
+    """
+    Busca partidos donde eq1[0]+eq1[1] jugaron JUNTOS contra eq2[0]+eq2[1].
+    Prueba ambas combinaciones de equipos (1vs2 y 2vs1).
+    Devuelve (winrate_eq1, n_partidos).
+    """
+    wins, total = 0, 0
+ 
+    for e1, e2 in [(1, 2), (2, 1)]:
+        p_j1a = set(df[(df["nombre"] == eq1[0]) & (df["equipo"] == e1)]["id_partido"])
+        p_j1b = set(df[(df["nombre"] == eq1[1]) & (df["equipo"] == e1)]["id_partido"])
+        p_j2a = set(df[(df["nombre"] == eq2[0]) & (df["equipo"] == e2)]["id_partido"])
+        p_j2b = set(df[(df["nombre"] == eq2[1]) & (df["equipo"] == e2)]["id_partido"])
+ 
+        partidos_comunes = p_j1a & p_j1b & p_j2a & p_j2b
+ 
+        for pid in partidos_comunes:
+            fila = df[df["id_partido"] == pid].iloc[0]
+            gano_eq1 = (fila["equipo_ganador"] == e1)
+            wins += int(gano_eq1)
+            total += 1
+ 
+    if total == 0:
+        return 0.5, 0
+    return wins / total, total
+ 
+ 
+def _h2h_individual(df, eq1, eq2):
+    """
+    Fallback: promedia enfrentamientos individuales cruzados.
+    ej: Gonzalo vs Esteban + Gonzalo vs Ivan + Danisu vs Esteban + Danisu vs Ivan
+    """
     wins, total = 0, 0
     for a in eq1:
         for d in eq2:
@@ -583,6 +398,24 @@ def _h2h(df, eq1, eq2):
                 total += len(enf)
     return wins / total if total > 0 else 0.5
  
+ 
+def _h2h(df, eq1, eq2):
+    """
+    - >= 2 partidos exactos  → solo pareja exacta
+    -  = 1 partido exacto    → 60% exacto + 40% individual
+    -  = 0 partidos exactos  → solo individual
+    """
+    exacto, n = _h2h_pareja_exacta(df, eq1, eq2)
+    individual = _h2h_individual(df, eq1, eq2)
+ 
+    if n >= 2:
+        return exacto
+    elif n == 1:
+        return 0.6 * exacto + 0.4 * individual
+    else:
+        return individual
+ 
+ 
 def _diff_juegos_norm(df, nombre):
     sub = df[df["nombre"] == nombre]
     if len(sub) == 0:
@@ -592,21 +425,23 @@ def _diff_juegos_norm(df, nombre):
     total = g + p
     return (g / total) if total > 0 else 0.5
  
+ 
 def calcular_score(df_ref, eq1, eq2):
     """
     Devuelve (score_eq1, score_eq2, desglose) usando pesos fijos.
     score_eq1 + score_eq2 = 1.0
     """
     vals = {}
-    vals["Head-to-head directo"]    = (_h2h(df_ref, eq1, eq2),       _h2h(df_ref, eq2, eq1))
+    vals["Head-to-head directo"]    = (_h2h(df_ref, eq1, eq2),
+                                        _h2h(df_ref, eq2, eq1))
     vals["Rendimiento como pareja"] = (_winrate_pareja(df_ref, eq1[0], eq1[1]),
-                                       _winrate_pareja(df_ref, eq2[0], eq2[1]))
+                                        _winrate_pareja(df_ref, eq2[0], eq2[1]))
     vals["Winrate histórico"]       = ((_winrate(df_ref, eq1[0]) + _winrate(df_ref, eq1[1])) / 2,
-                                       (_winrate(df_ref, eq2[0]) + _winrate(df_ref, eq2[1])) / 2)
+                                        (_winrate(df_ref, eq2[0]) + _winrate(df_ref, eq2[1])) / 2)
     vals["Forma reciente (5p)"]     = ((_forma_reciente(df_ref, eq1[0]) + _forma_reciente(df_ref, eq1[1])) / 2,
-                                       (_forma_reciente(df_ref, eq2[0]) + _forma_reciente(df_ref, eq2[1])) / 2)
-    vals["Diferencia de juegos"]    = (_diff_juegos_norm(df_ref, eq1[0]) * 0.5 + _diff_juegos_norm(df_ref, eq1[1]) * 0.5,
-                                       _diff_juegos_norm(df_ref, eq2[0]) * 0.5 + _diff_juegos_norm(df_ref, eq2[1]) * 0.5)
+                                        (_forma_reciente(df_ref, eq2[0]) + _forma_reciente(df_ref, eq2[1])) / 2)
+    vals["Diferencia de juegos"]    = ((_diff_juegos_norm(df_ref, eq1[0]) + _diff_juegos_norm(df_ref, eq1[1])) / 2,
+                                        (_diff_juegos_norm(df_ref, eq2[0]) + _diff_juegos_norm(df_ref, eq2[1])) / 2)
  
     score_eq1, score_eq2 = 0.0, 0.0
     for feature, peso in PESOS.items():
@@ -619,7 +454,6 @@ def calcular_score(df_ref, eq1, eq2):
         score_eq1 += peso * p1
         score_eq2 += peso * p2
  
-    # Normalizar por si hay pequeñas desviaciones
     total_score = score_eq1 + score_eq2
     score_eq1 /= total_score
     score_eq2 /= total_score
@@ -630,9 +464,8 @@ def calcular_score(df_ref, eq1, eq2):
 @st.cache_data
 def validacion_historica(df_hist):
     """
-    Aplica el modelo de pesos fijos a cada partido histórico
-    usando solo datos ANTERIORES a ese partido.
-    Devuelve accuracy.
+    Aplica el modelo a cada partido histórico usando solo datos anteriores.
+    Devuelve (accuracy, n_partidos_validados).
     """
     partidos_ord = df_hist.drop_duplicates("id_partido").copy()
     partidos_ord["_n"] = partidos_ord["id_partido"].astype(str).str.split("_").str[0].astype(int)
@@ -652,7 +485,6 @@ def validacion_historica(df_hist):
  
         df_antes = df_hist[df_hist["id_partido"].isin(ids_vistos)]
  
-        # Con muy pocos datos anteriores, saltamos (primeras jornadas)
         if len(df_antes) < 8:
             ids_vistos.append(pid)
             continue
@@ -664,7 +496,7 @@ def validacion_historica(df_hist):
         total += 1
         ids_vistos.append(pid)
  
-    return correctos / total if total > 0 else 0.0, total
+    return (correctos / total if total > 0 else 0.0), total
 
 # ─────────────────────────────────────────────
 # SIDEBAR (VERSIÓN OPTIMIZADA)
@@ -718,7 +550,7 @@ with st.sidebar:
             "🤝 Parejas",
             "🔥 Rachas",
             "📊 Gráficas",
-            "🤖 Predictor"
+            "💻 Predictor"
         ],
         label_visibility="collapsed"
     )
@@ -1401,20 +1233,19 @@ elif seccion == "📊 Gráficas":
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: PREDICTOR
 # ─────────────────────────────────────────────────────────────────────────────
-elif seccion == "🤖 Predictor":
-    st.markdown("## 🤖 Predictor de Partido")
-    st.caption("Modelo de scoring ponderado · Pesos definidos por lógica deportiva · Validado con datos históricos reales")
+elif seccion == "💻 Predictor":
+    st.markdown("## 💻 Predictor de Partido")
+    st.caption("Scoring ponderado · H2H usa pareja exacta con fallback individual · Validado con datos históricos")
  
     df_hist = df_completo.copy()
  
-    # Validación histórica (cacheada)
     with st.spinner("⚙️ Validando modelo con datos históricos..."):
         acc, n_validados = validacion_historica(df_hist)
  
     nombres_todos = sorted(df_hist["nombre"].unique())
  
-    # ── Selectores ──
     st.divider()
+ 
     col_eq1, col_vs, col_eq2 = st.columns([5, 1, 5])
  
     with col_eq1:
@@ -1447,9 +1278,9 @@ elif seccion == "🤖 Predictor":
         nombre_eq2 = f"{eq2[0]} & {eq2[1]}"
         favorito = nombre_eq1 if pct1 >= pct2 else nombre_eq2
         pct_fav = max(pct1, pct2)
- 
-        # ── Resultado ──
         color_fav = "#1f6feb" if pct1 >= pct2 else "#da3633"
+ 
+        # ── Resultado principal ──
         st.markdown(f"""
         <div style="background:#161b22;border:1px solid {color_fav};border-radius:14px;
                     padding:24px 28px;margin-bottom:16px;">
@@ -1463,8 +1294,8 @@ elif seccion == "🤖 Predictor":
         </div>
         """, unsafe_allow_html=True)
  
-        # ── Barra ──
-        fig, ax = plt.subplots(figsize=(10, 1.4))
+        # ── Barra visual ──
+        fig, ax = plt.subplots(figsize=(10, 1.6))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#0d1117")
         ax.barh(0, pct1, color="#1f6feb", height=0.5)
@@ -1484,16 +1315,24 @@ elif seccion == "🤖 Predictor":
         # ── Desglose por factor ──
         st.markdown("#### 🔍 Desglose por factor")
  
+        _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
+        if n_exactos >= 2:
+            h2h_fuente = f"✅ pareja exacta ({n_exactos} partidos)"
+        elif n_exactos == 1:
+            h2h_fuente = "⚠️ solo 1 partido exacto — combinado con historial individual"
+        else:
+            h2h_fuente = "ℹ️ sin enfrentamiento exacto — usando historial individual"
+ 
         for feature, peso in PESOS.items():
             v1, v2 = desglose[feature]
             ventaja1 = v1 >= v2
             color1 = "#1f6feb" if ventaja1 else "#8b949e"
             color2 = "#da3633" if not ventaja1 else "#8b949e"
             icono = "🔵" if ventaja1 else "🔴"
- 
-            # Mini barra proporcional
             bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
             bar_eq2 = 100 - bar_eq1
+            nota = f"<div style='color:#8b949e;font-size:0.75rem;margin-top:4px;'>{h2h_fuente}</div>" \
+                   if feature == "Head-to-head directo" else ""
  
             st.markdown(f"""
             <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
@@ -1510,6 +1349,7 @@ elif seccion == "🤖 Predictor":
                     <span style="color:{color1};font-weight:600;">{nombre_eq1}: {v1*100:.1f}%</span>
                     <span style="color:{color2};font-weight:600;">{nombre_eq2}: {v2*100:.1f}%</span>
                 </div>
+                {nota}
             </div>
             """, unsafe_allow_html=True)
  
@@ -1528,7 +1368,6 @@ elif seccion == "🤖 Predictor":
         """, unsafe_allow_html=True)
  
     else:
-        # Estado inicial — mostrar pesos activos
         st.markdown("#### ⚖️ Pesos del modelo")
         for feature, peso in PESOS.items():
             st.markdown(f"""
