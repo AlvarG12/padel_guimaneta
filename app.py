@@ -125,10 +125,19 @@ def calcular_clasificacion(df):
     clas["porcentaje_victorias"] = (clas["victorias"] / clas["partidos_jugados"] * 100).round(2)
     total_jornadas = df["id_jornada"].nunique()
     clas["jornadas"] = clas["jornadas_participadas"].astype(str) + "/" + str(total_jornadas)
+
+    # Orden con desempates en cascada
     clas = clas.sort_values(
-        by=["porcentaje_victorias", "diferencia_juegos", "juegos_ganados"],
+        by=[
+            "porcentaje_victorias",
+            "diferencia_juegos",
+            "victorias",
+            "jornadas_participadas",
+            "juegos_ganados"
+        ],
         ascending=False
     ).reset_index(drop=True)
+
     clas.index = clas.index + 1
     return clas
 
@@ -136,6 +145,7 @@ def calcular_clasificacion(df):
 def calcular_ranking_por_jornada(df):
     jornadas = sorted(df["id_jornada"].unique())
     clasificacion_jornadas = []
+
     for j in jornadas:
         df_j = df[df["id_jornada"] <= j]
         clas_j = df_j.groupby("nombre").agg(
@@ -143,15 +153,28 @@ def calcular_ranking_por_jornada(df):
             victorias=("victoria", "sum"),
             juegos_ganados=("juegos_ganados", "sum"),
             juegos_perdidos=("juegos_perdidos", "sum"),
+            jornadas_participadas=("id_jornada", "nunique")
         ).reset_index()
+
         clas_j["diferencia_juegos"] = clas_j["juegos_ganados"] - clas_j["juegos_perdidos"]
         clas_j["porcentaje_victorias"] = (clas_j["victorias"] / clas_j["partidos_jugados"] * 100).round(2)
+
+        # Orden con desempates en cascada
         clas_j = clas_j.sort_values(
-            by=["porcentaje_victorias", "diferencia_juegos", "juegos_ganados"], ascending=False
-        )
+            by=[
+                "porcentaje_victorias",
+                "diferencia_juegos",
+                "victorias",
+                "jornadas_participadas",
+                "juegos_ganados"
+            ],
+            ascending=False
+        ).reset_index(drop=True)
+
         clas_j["rank"] = range(1, len(clas_j) + 1)
         clas_j["hasta_jornada"] = j
         clasificacion_jornadas.append(clas_j)
+
     return pd.concat(clasificacion_jornadas, ignore_index=True)
 
 @st.cache_data
