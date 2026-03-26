@@ -936,12 +936,29 @@ elif seccion == "📋 Detalle":
     fecha = fila_info["fecha"] if "fecha" in fila_info else "N/A"
     num_partidos = df_jornada_simple["id_partido"].nunique()
 
-    # Métricas estilo tablero
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("🗓️ Jornada", jornada_sel)
-    col2.metric("📍 Sede", sede)
-    col3.metric("📅 Fecha", fecha)
-    col4.metric("🎾 Partidos", num_partidos)
+    # ── Contenedor estilizado ──
+    st.markdown(f"""
+    <div style="background:#0d1117; border:1px solid #30363d; border-radius:12px; padding:16px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; gap:16px;">
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">🗓️ Jornada</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{jornada_sel}</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">📍 Sede</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{sede}</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">📅 Fecha</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{fecha}</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">🎾 Partidos</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{num_partidos}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
