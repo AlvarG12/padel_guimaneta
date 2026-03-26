@@ -1603,16 +1603,13 @@ elif seccion == "💻 Predictor":
                     wins_eq1 = int(round(v1 * n_exactos))
                     wins_eq2 = n_exactos - wins_eq1
 
-                    extra_h2h = f"""
-                    <div style='display:flex;justify-content:space-between;
-                                font-size:0.85rem;margin-top:6px;'>
-                        <span style='color:#1f6feb;font-weight:600;'>{nombre_eq1}: {wins_eq1} victorias</span>
-                        <span style='color:#da3633;font-weight:600;'>{nombre_eq2}: {wins_eq2} victorias</span>
-                    </div>
-                    <div style='color:#8b949e;font-size:0.75rem;margin-top:2px;'>
-                        📊 {n_exactos} partidos exactos
-                    </div>
-                    """
+                    extra_h2h = (
+                        f"<div style='display:flex;justify-content:space-between;font-size:0.85rem;margin-top:6px;'>"
+                        f"<span style='color:#1f6feb;font-weight:600;'>{nombre_eq1}: {wins_eq1} victorias</span>"
+                        f"<span style='color:#da3633;font-weight:600;'>{nombre_eq2}: {wins_eq2} victorias</span>"
+                        f"</div>"
+                        f"<div style='color:#8b949e;font-size:0.75rem;margin-top:2px;'>📊 {n_exactos} partidos exactos</div>"
+                    )
 
             st.markdown(f"""
             <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
