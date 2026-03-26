@@ -567,12 +567,12 @@ def predecir_partido(pipeline, df_hist, eq1, eq2, feature_cols):
 
 
 PESOS = {
-    "H2H pareja exacta":         0.30,
+    "H2H pareja exacta":         0.32,
     "H2H individual":            0.15,
     "Rendimiento como pareja":   0.27,
-    "Forma reciente (5 partidos)":0.10,
-    "Winrate histórico":         0.13,
-    "Diferencia de juegos":      0.05,
+    "Forma reciente (5 partidos)":0.08,
+    "Winrate histórico":         0.15,
+    "Diferencia de juegos":      0.03,
 }
  
 # ─────────────────────────────────────────────────────────────────────────────
