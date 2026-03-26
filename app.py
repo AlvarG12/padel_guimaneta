@@ -1498,7 +1498,6 @@ elif seccion == "📊 Gráficas":
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "💻 Predictor":
     st.markdown("## 💻 Predictor de Partido")
-    st.caption("Scoring ponderado · H2H usa pareja exacta con fallback individual · Validado con datos históricos")
  
     df_hist = df_completo.copy()
  
