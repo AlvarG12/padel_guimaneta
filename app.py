@@ -1268,16 +1268,29 @@ elif seccion == "⚔️ Enfrentamientos":
                     p1_name, p2_name = j1, j2
  
                 total = int(r["partidos_totales"])
+
+                pct1 = v1 / total * 100 if total > 0 else 0
+                pct2 = v2 / total * 100 if total > 0 else 0
+
+                color1 = "#238636" if pct1 > 50 else "#da3633"
+                color2 = "#238636" if pct2 > 50 else "#da3633"
+
                 st.divider()
                 c1, c2, c3 = st.columns([2, 1, 2])
+
                 c1.markdown(f"### {p1_name}")
-                c1.metric("Victorias", v1, f"{v1/total*100:.1f}%")
+                c1.metric("Victorias", v1)
+                c1.markdown(f"<span style='color:{color1}; font-size:18px; font-weight:600;'>{pct1:.1f}%</span>", unsafe_allow_html=True)
                 c1.metric("Juegos ganados", jg1)
+
                 c2.markdown("### VS", unsafe_allow_html=False)
                 c2.metric("Partidos", total)
+
                 c3.markdown(f"### {p2_name}")
-                c3.metric("Victorias", v2, f"{v2/total*100:.1f}%")
+                c3.metric("Victorias", v2)
+                c3.markdown(f"<span style='color:{color2}; font-size:18px; font-weight:600;'>{pct2:.1f}%</span>", unsafe_allow_html=True)
                 c3.metric("Juegos ganados", jg2)
+
             else:
                 st.info("Estos jugadores no se han enfrentado todavía.")
  
