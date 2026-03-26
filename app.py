@@ -925,8 +925,6 @@ elif seccion == "📋 Detalle":
     jornadas = sorted(df["id_jornada"].unique())
     jornada_sel = st.selectbox("Selecciona jornada", jornadas)
 
-    st.divider()
-
     st.markdown("### 🧾 Información de la jornada")
 
     # Filtrar datos de la jornada
