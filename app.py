@@ -362,7 +362,7 @@ with st.sidebar:
         label="",
         options=[
             "🏆 Clasificación",
-            "📊 Detalle",
+            "📋 Detalle",
             "👤 Perfil Jugador",
             "⚔️ Enfrentamientos",
             "🤝 Parejas",
@@ -472,8 +472,8 @@ if seccion == "🏆 Clasificación":
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: DETALLE
 # ─────────────────────────────────────────────────────────────────────────────
-elif seccion == "📊 Detalle":
-    st.markdown("## 📊 Detalle de Jornada")
+elif seccion == "📋 Detalle":
+    st.markdown("## 📋 Detalle de Jornada")
 
     # 🔽 Selección de jornada
     jornadas = sorted(df["id_jornada"].unique())
