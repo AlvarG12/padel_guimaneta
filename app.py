@@ -1624,8 +1624,6 @@ elif seccion == "💻 Predictor":
             </div>
             """, unsafe_allow_html=True)
  
-        st.divider()
- 
         # ── Accuracy del modelo ──
         #acc_color = "#238636" if acc >= 0.60 else "#d29922" if acc >= 0.50 else "#da3633"
         #st.markdown(f"""
