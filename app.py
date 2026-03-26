@@ -644,37 +644,37 @@ def _diff_juegos_norm(df, nombre):
  
  
 def calcular_score(df_ref, eq1, eq2):
-    """
-    Devuelve (score_eq1, score_eq2, desglose) usando pesos fijos.
-    score_eq1 + score_eq2 = 1.0
-    """
     vals = {}
-    vals["Head-to-head directo"]    = (_h2h(df_ref, eq1, eq2),
-                                        _h2h(df_ref, eq2, eq1))
+
+    exacto_eq1, n = _h2h_pareja_exacta(df_ref, eq1, eq2)
+    exacto_eq2, _ = _h2h_pareja_exacta(df_ref, eq2, eq1)
+
+    # Si no hay datos exactos, este factor es neutro (0.5 para ambos)
+    vals["H2H pareja exacta"]       = (exacto_eq1, exacto_eq2)
+
+    vals["H2H individual"]          = (_h2h_individual(df_ref, eq1, eq2),
+                                        _h2h_individual(df_ref, eq2, eq1))
     vals["Rendimiento como pareja"] = (_winrate_pareja(df_ref, eq1[0], eq1[1]),
                                         _winrate_pareja(df_ref, eq2[0], eq2[1]))
-    vals["Winrate histórico"]       = ((_winrate(df_ref, eq1[0]) + _winrate(df_ref, eq1[1])) / 2,
-                                        (_winrate(df_ref, eq2[0]) + _winrate(df_ref, eq2[1])) / 2)
     vals["Forma reciente (5p)"]     = ((_forma_reciente(df_ref, eq1[0]) + _forma_reciente(df_ref, eq1[1])) / 2,
                                         (_forma_reciente(df_ref, eq2[0]) + _forma_reciente(df_ref, eq2[1])) / 2)
+    vals["Winrate histórico"]       = ((_winrate(df_ref, eq1[0]) + _winrate(df_ref, eq1[1])) / 2,
+                                        (_winrate(df_ref, eq2[0]) + _winrate(df_ref, eq2[1])) / 2)
     vals["Diferencia de juegos"]    = ((_diff_juegos_norm(df_ref, eq1[0]) + _diff_juegos_norm(df_ref, eq1[1])) / 2,
                                         (_diff_juegos_norm(df_ref, eq2[0]) + _diff_juegos_norm(df_ref, eq2[1])) / 2)
- 
+
     score_eq1, score_eq2 = 0.0, 0.0
-    for feature, peso in PESOS.items():
-        v1, v2 = vals[feature]
+    for feature, (v1, v2) in vals.items():
+        peso = PESOS.get(feature, 0.0)
         total = v1 + v2
-        if total == 0:
-            p1, p2 = 0.5, 0.5
-        else:
-            p1, p2 = v1 / total, v2 / total
+        p1, p2 = (v1 / total, v2 / total) if total > 0 else (0.5, 0.5)
         score_eq1 += peso * p1
         score_eq2 += peso * p2
- 
+
     total_score = score_eq1 + score_eq2
     score_eq1 /= total_score
     score_eq2 /= total_score
- 
+
     return score_eq1, score_eq2, vals
  
  
@@ -1534,11 +1534,11 @@ elif seccion == "💻 Predictor":
  
         _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
         if n_exactos >= 2:
-            h2h_fuente = f"✅ pareja exacta ({n_exactos} partidos)"
+            h2h_fuente = f"✅ {n_exactos} partidos exactos"
         elif n_exactos == 1:
-            h2h_fuente = "⚠️ solo 1 partido exacto — combinado con historial individual"
+            h2h_fuente = "⚠️ solo 1 partido exacto"
         else:
-            h2h_fuente = "ℹ️ sin enfrentamiento exacto — usando historial individual"
+            h2h_fuente = "ℹ️ sin enfrentamiento exacto — factor neutro (50%)"
  
         for feature, peso in PESOS.items():
             v1, v2 = desglose[feature]
@@ -1549,7 +1549,7 @@ elif seccion == "💻 Predictor":
             bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
             bar_eq2 = 100 - bar_eq1
             nota = f"<div style='color:#8b949e;font-size:0.75rem;margin-top:4px;'>{h2h_fuente}</div>" \
-                   if feature == "Head-to-head directo" else ""
+                   if feature == "H2H pareja exacta" else ""
  
             st.markdown(f"""
             <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
