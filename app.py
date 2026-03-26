@@ -7,7 +7,6 @@ import seaborn as sns
 import itertools
 import os
 import unicodedata
-from collections import defaultdict
 
 def quitar_acentos(texto):
     return ''.join(
@@ -784,280 +783,6 @@ def validacion_historica(df_hist):
         ids_vistos.append(pid)
  
     return (correctos / total if total > 0 else 0.0), total
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CONFIGURACIÓN ELO
-# ─────────────────────────────────────────────────────────────────────────────
-
-ELO_INICIAL = 1500
-K_FACTOR_BASE = 30  # Balanceado
-DECAY_FORMA = 0.85  # Para forma reciente exponencial
-PARTIDOS_FORMA = 8  # Últimos 8 partidos para forma
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CLASE SISTEMA ELO
-# ─────────────────────────────────────────────────────────────────────────────
-
-class SistemaElo:
-    def __init__(self, df_historico):
-        self.df = df_historico.copy()
-        self.elo_actual = defaultdict(lambda: ELO_INICIAL)
-        self.historial_elo = defaultdict(list)  # [(jornada, partido_id, elo)]
-        self.quimica_parejas = {}  # (j1, j2) -> winrate
-        
-        # Construir sistema desde cero
-        self._construir_elo()
-        self._calcular_quimica()
-    
-    def _construir_elo(self):
-        """Procesa todos los partidos históricos cronológicamente para actualizar Elos"""
-        
-        # Ordenar partidos cronológicamente
-        partidos = self.df.drop_duplicates("id_partido").copy()
-        partidos["_num"] = partidos["id_partido"].astype(str).str.split("_").str[0].astype(int)
-        partidos = partidos.sort_values(["id_jornada", "_num"])
-        
-        for _, partido in partidos.iterrows():
-            pid = partido["id_partido"]
-            jornada = partido["id_jornada"]
-            
-            # Obtener jugadores
-            jugadores_p = self.df[self.df["id_partido"] == pid]
-            eq1 = jugadores_p[jugadores_p["equipo"] == 1]["nombre"].tolist()
-            eq2 = jugadores_p[jugadores_p["equipo"] == 2]["nombre"].tolist()
-            
-            if len(eq1) != 2 or len(eq2) != 2:
-                continue
-            
-            # Guardar Elo ANTES del partido
-            for j in eq1 + eq2:
-                self.historial_elo[j].append((jornada, pid, self.elo_actual[j]))
-            
-            # Calcular Elo medio de cada equipo
-            elo_eq1 = (self.elo_actual[eq1[0]] + self.elo_actual[eq1[1]]) / 2
-            elo_eq2 = (self.elo_actual[eq2[0]] + self.elo_actual[eq2[1]]) / 2
-            
-            # Probabilidad esperada
-            prob_eq1 = self._probabilidad_victoria(elo_eq1, elo_eq2)
-            
-            # Resultado real
-            ganador = partido["equipo_ganador"]
-            resultado_eq1 = 1.0 if ganador == 1 else 0.0
-            
-            # K-factor ajustado por margen (2-0 vs 2-1)
-            margen = abs(partido["juegos_equipo1"] - partido["juegos_equipo2"])
-            k_factor = K_FACTOR_BASE * (1.0 if margen == 1 else 1.3)
-            
-            # Actualizar Elos
-            cambio = k_factor * (resultado_eq1 - prob_eq1)
-            
-            for j in eq1:
-                self.elo_actual[j] += cambio
-            for j in eq2:
-                self.elo_actual[j] -= cambio
-    
-    def _calcular_quimica(self):
-        """Calcula el winrate de cada pareja específica"""
-        
-        for nombre1 in self.df["nombre"].unique():
-            for nombre2 in self.df["nombre"].unique():
-                if nombre1 >= nombre2:  # Evitar duplicados
-                    continue
-                
-                # Buscar partidos juntos
-                s1 = self.df[self.df["nombre"] == nombre1][["id_partido", "equipo", "victoria"]]
-                s2 = self.df[self.df["nombre"] == nombre2][["id_partido", "equipo"]]
-                juntos = s1.merge(s2, on=["id_partido", "equipo"])
-                
-                if len(juntos) >= 2:  # Mínimo 2 partidos para química significativa
-                    winrate = juntos["victoria"].mean()
-                    self.quimica_parejas[(nombre1, nombre2)] = winrate
-                    self.quimica_parejas[(nombre2, nombre1)] = winrate
-    
-    def _probabilidad_victoria(self, elo1, elo2):
-        """Fórmula logística estándar de Elo"""
-        return 1 / (1 + 10 ** ((elo2 - elo1) / 400))
-    
-    def get_elo(self, nombre):
-        """Obtiene el Elo actual de un jugador"""
-        return self.elo_actual[nombre]
-    
-    def get_forma_reciente(self, nombre, n=PARTIDOS_FORMA):
-        """
-        Calcula Elo ponderado exponencialmente hacia partidos recientes.
-        Los últimos partidos pesan más que los antiguos.
-        """
-        historial = self.historial_elo[nombre]
-        if len(historial) < 2:
-            return self.elo_actual[nombre]
-        
-        # Tomar últimos n partidos
-        recientes = historial[-n:]
-        
-        # Pesos exponenciales (el más reciente pesa más)
-        pesos = [DECAY_FORMA ** (len(recientes) - i - 1) for i in range(len(recientes))]
-        suma_pesos = sum(pesos)
-        
-        # Promedio ponderado
-        elo_forma = sum(elo * peso for (_, _, elo), peso in zip(recientes, pesos)) / suma_pesos
-        
-        return elo_forma
-    
-    def get_quimica_pareja(self, j1, j2):
-        """
-        Devuelve el ajuste de química de pareja.
-        Positivo si la pareja rinde sobre lo esperado, negativo si rinde bajo.
-        """
-        clave = (j1, j2) if j1 < j2 else (j2, j1)
-        
-        if clave not in self.quimica_parejas:
-            return 0.0  # Sin datos
-        
-        winrate_real = self.quimica_parejas[clave]
-        
-        # Calcular winrate esperado basado en Elo individual promedio
-        elo_promedio = (self.get_elo(j1) + self.get_elo(j2)) / 2
-        
-        # Comparar con liga (Elo medio ~1500)
-        winrate_esperado = self._probabilidad_victoria(elo_promedio, 1500)
-        
-        # Diferencia = química
-        diferencia = winrate_real - winrate_esperado
-        
-        # Convertir a ajuste de Elo (±50 puntos máximo)
-        ajuste = diferencia * 200  # Escala: 0.25 de diferencia = 50 puntos
-        
-        return np.clip(ajuste, -100, 100)
-    
-    def predecir_partido(self, eq1, eq2):
-        """
-        Predice resultado de un partido entre dos equipos.
-        
-        Returns:
-            prob_eq1, prob_eq2, desglose
-        """
-        
-        # ── 1. ELO BASE (actual) ──
-        elo_j1a = self.get_elo(eq1[0])
-        elo_j1b = self.get_elo(eq1[1])
-        elo_j2a = self.get_elo(eq2[0])
-        elo_j2b = self.get_elo(eq2[1])
-        
-        elo_base_eq1 = (elo_j1a + elo_j1b) / 2
-        elo_base_eq2 = (elo_j2a + elo_j2b) / 2
-        
-        # ── 2. FORMA RECIENTE ──
-        forma_j1a = self.get_forma_reciente(eq1[0])
-        forma_j1b = self.get_forma_reciente(eq1[1])
-        forma_j2a = self.get_forma_reciente(eq2[0])
-        forma_j2b = self.get_forma_reciente(eq2[1])
-        
-        elo_forma_eq1 = (forma_j1a + forma_j1b) / 2
-        elo_forma_eq2 = (forma_j2a + forma_j2b) / 2
-        
-        # ── 3. QUÍMICA DE PAREJA ──
-        quimica_eq1 = self.get_quimica_pareja(eq1[0], eq1[1])
-        quimica_eq2 = self.get_quimica_pareja(eq2[0], eq2[1])
-        
-        # ── 4. ELO FINAL COMBINADO ──
-        # 50% Elo actual, 30% forma, 20% química
-        elo_final_eq1 = (
-            0.50 * elo_base_eq1 +
-            0.30 * elo_forma_eq1 +
-            0.20 * (elo_base_eq1 + quimica_eq1)
-        )
-        
-        elo_final_eq2 = (
-            0.50 * elo_base_eq2 +
-            0.30 * elo_forma_eq2 +
-            0.20 * (elo_base_eq2 + quimica_eq2)
-        )
-        
-        # ── 5. PROBABILIDAD FINAL ──
-        prob_eq1 = self._probabilidad_victoria(elo_final_eq1, elo_final_eq2)
-        prob_eq2 = 1 - prob_eq1
-        
-        # ── 6. DESGLOSE PARA MOSTRAR ──
-        desglose = {
-            "elo_base": {
-                "eq1": elo_base_eq1,
-                "eq2": elo_base_eq2,
-                "jugadores_eq1": (elo_j1a, elo_j1b),
-                "jugadores_eq2": (elo_j2a, elo_j2b)
-            },
-            "forma": {
-                "eq1": elo_forma_eq1,
-                "eq2": elo_forma_eq2,
-                "cambio_eq1": elo_forma_eq1 - elo_base_eq1,
-                "cambio_eq2": elo_forma_eq2 - elo_base_eq2
-            },
-            "quimica": {
-                "eq1": quimica_eq1,
-                "eq2": quimica_eq2
-            },
-            "elo_final": {
-                "eq1": elo_final_eq1,
-                "eq2": elo_final_eq2
-            }
-        }
-        
-        return prob_eq1, prob_eq2, desglose
-    
-# ─────────────────────────────────────────────────────────────────────────────
-# VALIDACIÓN HISTÓRICA CON ELO
-# ─────────────────────────────────────────────────────────────────────────────
-
-@st.cache_data
-def validacion_elo_historica(df_hist):
-    """
-    Valida el sistema Elo usando leave-one-out por jornada.
-    Para cada partido, usa solo datos ANTERIORES para predecir.
-    """
-    
-    partidos = df_hist.drop_duplicates("id_partido").copy()
-    partidos["_num"] = partidos["id_partido"].astype(str).str.split("_").str[0].astype(int)
-    partidos = partidos.sort_values(["id_jornada", "_num"])
-    
-    correctos = 0
-    total = 0
-    
-    for idx, (_, partido) in enumerate(partidos.iterrows()):
-        
-        # Saltar primeras jornadas (sin datos suficientes)
-        if partido["id_jornada"] < 3:
-            continue
-        
-        pid = partido["id_partido"]
-        
-        # Obtener equipos
-        jugadores_p = df_hist[df_hist["id_partido"] == pid]
-        eq1 = jugadores_p[jugadores_p["equipo"] == 1]["nombre"].tolist()
-        eq2 = jugadores_p[jugadores_p["equipo"] == 2]["nombre"].tolist()
-        
-        if len(eq1) != 2 or len(eq2) != 2:
-            continue
-        
-        # Construir sistema Elo con SOLO partidos anteriores
-        df_antes = df_hist[df_hist["id_partido"].isin(partidos.iloc[:idx]["id_partido"])]
-        
-        if len(df_antes) < 10:
-            continue
-        
-        sistema = SistemaElo(df_antes)
-        
-        # Predecir
-        prob_eq1, prob_eq2, _ = sistema.predecir_partido(eq1, eq2)
-        
-        prediccion = 1 if prob_eq1 >= prob_eq2 else 2
-        
-        if prediccion == partido["equipo_ganador"]:
-            correctos += 1
-        
-        total += 1
-    
-    accuracy = correctos / total if total > 0 else 0.0
-    
-    return accuracy, total
 
 # ─────────────────────────────────────────────
 # SIDEBAR (VERSIÓN OPTIMIZADA)
@@ -1860,79 +1585,47 @@ elif seccion == "📊 Gráficas":
         st.pyplot(fig)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SECCIÓN: PREDICTOR
+# ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "💻 Predictor":
-    st.markdown("## 💻 Predictor de Partido - Sistema Elo")
-    
-    # Construir sistema Elo con TODOS los datos disponibles
+    st.markdown("## 💻 Predictor de Partido")
+ 
     df_hist = df_completo.copy()
-    
-    with st.spinner("⚙️ Construyendo sistema Elo y validando..."):
-        sistema_elo = SistemaElo(df_hist)
-        acc_elo, n_validados = validacion_elo_historica(df_hist)
-    
+ 
+    with st.spinner("⚙️ Validando modelo con datos históricos..."):
+        acc, n_validados = validacion_historica(df_hist)
+ 
     nombres_todos = sorted(df_hist["nombre"].unique())
-    
-    # ── INFO DEL MODELO ──
-    acc_color = "#238636" if acc_elo >= 0.60 else "#d29922" if acc_elo >= 0.50 else "#da3633"
-    st.markdown(f"""
-    <div style="background:#161b22;border:1px solid {acc_color};border-radius:10px;padding:14px 18px;margin-bottom:16px;">
-        <div style="color:#8b949e;font-size:0.85rem;margin-bottom:4px;">🎯 Sistema Elo calibrado</div>
-        <div style="color:{acc_color};font-size:1.3rem;font-weight:700;">{acc_elo*100:.1f}% de acierto histórico</div>
-        <div style="color:#8b949e;font-size:0.8rem;margin-top:4px;">
-            validado sobre {n_validados} partidos (desde jornada 3)
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
+ 
     st.divider()
-    
-    # ── TABLA DE ELOS ACTUALES ──
-    with st.expander("📊 Ver Elos actuales de todos los jugadores"):
-        elos_actuales = []
-        for nombre in nombres_todos:
-            elos_actuales.append({
-                "Jugador": nombre,
-                "Elo": int(round(sistema_elo.get_elo(nombre))),
-                "Forma": int(round(sistema_elo.get_forma_reciente(nombre)))
-            })
-        
-        df_elos = pd.DataFrame(elos_actuales).sort_values("Elo", ascending=False)
-        df_elos.index = range(1, len(df_elos) + 1)
-        
-        st.dataframe(
-            df_elos.style.background_gradient(subset=["Elo"], cmap="RdYlGn"),
-            use_container_width=True
-        )
-    
-    st.divider()
-    
-    # ── SELECTOR DE EQUIPOS ──
+ 
     col_eq1, col_vs, col_eq2 = st.columns([5, 1, 5])
-    
+ 
     with col_eq1:
         st.markdown("#### 🔵 Equipo 1")
-        j1a = st.selectbox("Jugador A", nombres_todos, key="j1a_elo")
-        j1b = st.selectbox("Jugador B", [j for j in nombres_todos if j != j1a], key="j1b_elo")
-    
+        j1a = st.selectbox("Jugador A", nombres_todos, key="j1a")
+        j1b = st.selectbox("Jugador B", [j for j in nombres_todos if j != j1a], key="j1b")
+ 
     with col_vs:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.markdown("### VS")
-    
+ 
     with col_eq2:
         st.markdown("#### 🔴 Equipo 2")
         disp2 = [j for j in nombres_todos if j not in [j1a, j1b]]
-        j2a = st.selectbox("Jugador C", disp2, key="j2a_elo")
-        j2b = st.selectbox("Jugador D", [j for j in disp2 if j != j2a], key="j2b_elo")
-    
+        j2a = st.selectbox("Jugador C", disp2, key="j2a")
+        j2b = st.selectbox("Jugador D", [j for j in disp2 if j != j2a], key="j2b")
+ 
     eq1 = [j1a, j1b]
     eq2 = [j2a, j2b]
-    
+ 
     st.divider()
-    
+ 
     if st.button("🎯 Calcular predicción", use_container_width=True, type="primary"):
-        
-        prob_eq1, prob_eq2, desglose = sistema_elo.predecir_partido(eq1, eq2)
-        
+ 
+        prob_eq1, prob_eq2, desglose = calcular_score(df_hist, eq1, eq2)
+ 
         pct1 = round(prob_eq1 * 100, 1)
         pct2 = round(prob_eq2 * 100, 1)
         nombre_eq1 = f"{eq1[0]} & {eq1[1]}"
@@ -1940,8 +1633,8 @@ elif seccion == "💻 Predictor":
         favorito = nombre_eq1 if pct1 >= pct2 else nombre_eq2
         pct_fav = max(pct1, pct2)
         color_fav = "#1f6feb" if pct1 >= pct2 else "#da3633"
-        
-        # ── RESULTADO PRINCIPAL ──
+ 
+        # ── Resultado principal ──
         st.markdown(f"""
         <div style="background:#161b22;border:1px solid {color_fav};border-radius:14px;
                     padding:24px 28px;margin-bottom:16px;">
@@ -1954,8 +1647,8 @@ elif seccion == "💻 Predictor":
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        # ── BARRA VISUAL ──
+ 
+        # ── Barra visual ──
         fig, ax = plt.subplots(figsize=(10, 1.6))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#0d1117")
@@ -1970,132 +1663,82 @@ elif seccion == "💻 Predictor":
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
-        
+ 
         st.divider()
-        
-        # ── DESGLOSE COMPLETO ──
-        st.markdown("#### 🔍 Desglose completo del análisis")
-        
-        # 1. ELO BASE
-        elo1 = desglose["elo_base"]["eq1"]
-        elo2 = desglose["elo_base"]["eq2"]
-        elo_j1a, elo_j1b = desglose["elo_base"]["jugadores_eq1"]
-        elo_j2a, elo_j2b = desglose["elo_base"]["jugadores_eq2"]
-        
-        st.markdown(f"""
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
-                    padding:12px 16px;margin-bottom:12px;">
-            <div style="color:#e6edf3;font-weight:600;margin-bottom:8px;">⚖️ Elo base (habilidad actual)</div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                <div style="flex:1;">
-                    <div style="color:#1f6feb;font-weight:600;font-size:1.1rem;">{nombre_eq1}</div>
-                    <div style="color:#8b949e;font-size:0.85rem;">
-                        {eq1[0]}: {int(elo_j1a)} · {eq1[1]}: {int(elo_j1b)}
-                    </div>
-                    <div style="color:#ffffff;font-size:1.2rem;font-weight:700;margin-top:4px;">
-                        Elo promedio: {int(elo1)}
-                    </div>
+ 
+        # ── Desglose por factor ──
+        st.markdown("#### 🔍 Desglose por factor")
+ 
+        _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
+
+        for feature, peso in PESOS.items():
+
+            # 🔥 SI NO EXISTE → SKIP
+            if feature not in desglose:
+                continue
+
+            v1, v2 = desglose[feature]
+
+            ventaja1 = v1 >= v2
+            color1 = "#1f6feb" if ventaja1 else "#8b949e"
+            color2 = "#da3633" if not ventaja1 else "#8b949e"
+            icono = "🔵" if ventaja1 else "🔴"
+
+            bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
+            bar_eq2 = 100 - bar_eq1
+
+            # 🔥 INFO EXTRA H2H EXACTO
+            extra_h2h = ""
+            if feature == "H2H pareja exacta":
+                if n_exactos > 0:
+                    wins_eq1 = int(round(v1 * n_exactos))
+                    wins_eq2 = n_exactos - wins_eq1
+
+                    extra_h2h = (
+                        f"<div style='display:flex;justify-content:space-between;font-size:0.85rem;margin-top:6px;'>"
+                        f"<span style='color:#1f6feb;font-weight:600;'>{nombre_eq1}: {wins_eq1} victorias</span>"
+                        f"<span style='color:#da3633;font-weight:600;'>{nombre_eq2}: {wins_eq2} victorias</span>"
+                        f"</div>"
+                        f"<div style='color:#8b949e;font-size:0.75rem;margin-top:2px;'>📊 {n_exactos} partidos exactos</div>"
+                    )
+
+            st.markdown(f"""
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
+                        padding:12px 16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="color:#e6edf3;font-weight:600;">{icono} {feature}</span>
                 </div>
-                <div style="flex:1;text-align:right;">
-                    <div style="color:#da3633;font-weight:600;font-size:1.1rem;">{nombre_eq2}</div>
-                    <div style="color:#8b949e;font-size:0.85rem;">
-                        {eq2[0]}: {int(elo_j2a)} · {eq2[1]}: {int(elo_j2b)}
-                    </div>
-                    <div style="color:#ffffff;font-size:1.2rem;font-weight:700;margin-top:4px;">
-                        Elo promedio: {int(elo2)}
-                    </div>
+                <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px;">
+                    <div style="width:{bar_eq1:.1f}%;background:#1f6feb;"></div>
+                    <div style="width:{bar_eq2:.1f}%;background:#da3633;"></div>
                 </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
+                    <span style="color:{color1};font-weight:600;">{nombre_eq1}: {v1*100:.1f}%</span>
+                    <span style="color:{color2};font-weight:600;">{nombre_eq2}: {v2*100:.1f}%</span>
+                </div>
+                {extra_h2h}
             </div>
-            <div style="color:#8b949e;font-size:0.8rem;margin-top:8px;">
-                Diferencia: {abs(int(elo1 - elo2))} puntos a favor de {nombre_eq1 if elo1 > elo2 else nombre_eq2}
+            """, unsafe_allow_html=True)
+ 
+        # ── Accuracy del modelo ──
+        #acc_color = "#238636" if acc >= 0.60 else "#d29922" if acc >= 0.50 else "#da3633"
+        #st.markdown(f"""
+        #<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 18px;">
+        #    <div style="color:#8b949e;font-size:0.85rem;margin-bottom:4px;">📊 Validación histórica del modelo</div>
+        #    <div style="color:{acc_color};font-size:1.3rem;font-weight:700;">{acc*100:.1f}% de acierto</div>
+        #    <div style="color:#8b949e;font-size:0.8rem;margin-top:4px;">
+        #        sobre {n_validados} partidos históricos · excluye las primeras jornadas (sin datos previos suficientes)
+        #    </div>
+        #</div>
+        #""", unsafe_allow_html=True)
+ 
+    else:
+        st.markdown("#### ⚖️ Pesos del modelo")
+        for feature, peso in PESOS.items():
+            st.markdown(f"""
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        background:#161b22;border:1px solid #30363d;border-radius:8px;
+                        padding:10px 16px;margin-bottom:6px;">
+                <span style="color:#e6edf3;">{feature}</span>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # 2. FORMA RECIENTE
-        forma1 = desglose["forma"]["eq1"]
-        forma2 = desglose["forma"]["eq2"]
-        cambio1 = desglose["forma"]["cambio_eq1"]
-        cambio2 = desglose["forma"]["cambio_eq2"]
-        
-        flecha1 = "📈" if cambio1 > 10 else "📉" if cambio1 < -10 else "➡️"
-        flecha2 = "📈" if cambio2 > 10 else "📉" if cambio2 < -10 else "➡️"
-        
-        st.markdown(f"""
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
-                    padding:12px 16px;margin-bottom:12px;">
-            <div style="color:#e6edf3;font-weight:600;margin-bottom:8px;">🔥 Forma reciente (últimos {PARTIDOS_FORMA} partidos)</div>
-            <div style="display:flex;justify-content:space-between;">
-                <div style="flex:1;">
-                    <div style="color:#1f6feb;font-weight:600;">{nombre_eq1}</div>
-                    <div style="color:#ffffff;font-size:1.1rem;">
-                        {flecha1} Elo forma: {int(forma1)} ({cambio1:+d})
-                    </div>
-                </div>
-                <div style="flex:1;text-align:right;">
-                    <div style="color:#da3633;font-weight:600;">{nombre_eq2}</div>
-                    <div style="color:#ffffff;font-size:1.1rem;">
-                        {flecha2} Elo forma: {int(forma2)} ({cambio2:+d})
-                    </div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # 3. QUÍMICA DE PAREJA
-        quim1 = desglose["quimica"]["eq1"]
-        quim2 = desglose["quimica"]["eq2"]
-        
-        emoji_q1 = "🔥" if quim1 > 20 else "✅" if quim1 > 0 else "⚠️" if quim1 > -20 else "💔"
-        emoji_q2 = "🔥" if quim2 > 20 else "✅" if quim2 > 0 else "⚠️" if quim2 > -20 else "💔"
-        
-        color_q1 = "#238636" if quim1 > 0 else "#da3633"
-        color_q2 = "#238636" if quim2 > 0 else "#da3633"
-        
-        st.markdown(f"""
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
-                    padding:12px 16px;margin-bottom:12px;">
-            <div style="color:#e6edf3;font-weight:600;margin-bottom:8px;">💫 Química de pareja</div>
-            <div style="display:flex;justify-content:space-between;">
-                <div style="flex:1;">
-                    <div style="color:#1f6feb;font-weight:600;">{nombre_eq1}</div>
-                    <div style="color:{color_q1};font-size:1.1rem;font-weight:600;">
-                        {emoji_q1} {quim1:+.0f} puntos Elo
-                    </div>
-                </div>
-                <div style="flex:1;text-align:right;">
-                    <div style="color:#da3633;font-weight:600;">{nombre_eq2}</div>
-                    <div style="color:{color_q2};font-size:1.1rem;font-weight:600;">
-                        {emoji_q2} {quim2:+.0f} puntos Elo
-                    </div>
-                </div>
-            </div>
-            <div style="color:#8b949e;font-size:0.75rem;margin-top:8px;">
-                Basado en rendimiento histórico conjunto vs rendimiento esperado individual
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # 4. ELO FINAL
-        elo_final1 = desglose["elo_final"]["eq1"]
-        elo_final2 = desglose["elo_final"]["eq2"]
-        
-        st.markdown(f"""
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
-                    padding:12px 16px;">
-            <div style="color:#e6edf3;font-weight:600;margin-bottom:8px;">🎯 Elo final combinado</div>
-            <div style="display:flex;justify-content:space-between;">
-                <div style="flex:1;">
-                    <div style="color:#1f6feb;font-weight:600;font-size:1.2rem;">{int(elo_final1)}</div>
-                    <div style="color:#8b949e;font-size:0.8rem;">50% base + 30% forma + 20% química</div>
-                </div>
-                <div style="flex:1;text-align:right;">
-                    <div style="color:#da3633;font-weight:600;font-size:1.2rem;">{int(elo_final2)}</div>
-                    <div style="color:#8b949e;font-size:0.8rem;">50% base + 30% forma + 20% química</div>
-                </div>
-            </div>
-            <div style="color:#ffffff;font-size:1.1rem;font-weight:700;margin-top:12px;text-align:center;">
-                → Probabilidad: {pct1}% vs {pct2}%
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
