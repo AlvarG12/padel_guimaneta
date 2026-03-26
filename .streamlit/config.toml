@@ -1,0 +1,7 @@
+[theme]
+base="dark"
+primaryColor="#1f6feb"  # color principal (opcional)
+backgroundColor="#0d1117"  # fondo principal (opcional)
+secondaryBackgroundColor="#161b22"  # fondo de tarjetas (opcional)
+textColor="#c9d1d9"  # color del texto
+font="sans serif"
