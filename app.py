@@ -7,10 +7,6 @@ import seaborn as sns
 import itertools
 import os
 import unicodedata
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import cross_val_score
-from sklearn.pipeline import Pipeline
 
 def quitar_acentos(texto):
     return ''.join(
