@@ -980,25 +980,26 @@ elif seccion == "📋 Detalle":
 
     partidos_jornada = df[
         (df["id_jornada"] == jornada_sel)
-    ].drop_duplicates(subset=["id_partido"])
+    ].copy()
+
+    # 🧪 DEBUG (puedes quitar luego)
+    st.write(f"Partidos encontrados: {partidos_jornada['id_partido'].nunique()}")
 
     # Agrupar por partido
     for partido_id, grupo in partidos_jornada.groupby("id_partido"):
 
         # Obtener equipos
-        jugadores = grupo["nombre"].tolist()
-
-        # Dividir en 2 equipos según equipo (0/1)
         equipo1 = grupo[grupo["equipo"] == 1]["nombre"].tolist()
         equipo2 = grupo[grupo["equipo"] == 2]["nombre"].tolist()
 
-        if not equipo1 or not equipo2:
+        # ⚠️ Evitar partidos incompletos
+        if len(equipo1) < 1 or len(equipo2) < 1:
             continue
 
         eq1 = " y ".join(equipo1)
         eq2 = " y ".join(equipo2)
 
-        # Juegos
+        # Juegos (una sola fila vale)
         p_row = grupo.iloc[0]
         g1 = int(p_row["juegos_equipo1"])
         g2 = int(p_row["juegos_equipo2"])
