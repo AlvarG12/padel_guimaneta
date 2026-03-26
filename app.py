@@ -1627,16 +1627,16 @@ elif seccion == "💻 Predictor":
         st.divider()
  
         # ── Accuracy del modelo ──
-        acc_color = "#238636" if acc >= 0.60 else "#d29922" if acc >= 0.50 else "#da3633"
-        st.markdown(f"""
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 18px;">
-            <div style="color:#8b949e;font-size:0.85rem;margin-bottom:4px;">📊 Validación histórica del modelo</div>
-            <div style="color:{acc_color};font-size:1.3rem;font-weight:700;">{acc*100:.1f}% de acierto</div>
-            <div style="color:#8b949e;font-size:0.8rem;margin-top:4px;">
-                sobre {n_validados} partidos históricos · excluye las primeras jornadas (sin datos previos suficientes)
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        #acc_color = "#238636" if acc >= 0.60 else "#d29922" if acc >= 0.50 else "#da3633"
+        #st.markdown(f"""
+        #<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 18px;">
+        #    <div style="color:#8b949e;font-size:0.85rem;margin-bottom:4px;">📊 Validación histórica del modelo</div>
+        #    <div style="color:{acc_color};font-size:1.3rem;font-weight:700;">{acc*100:.1f}% de acierto</div>
+        #    <div style="color:#8b949e;font-size:0.8rem;margin-top:4px;">
+        #        sobre {n_validados} partidos históricos · excluye las primeras jornadas (sin datos previos suficientes)
+        #    </div>
+        #</div>
+        #""", unsafe_allow_html=True)
  
     else:
         st.markdown("#### ⚖️ Pesos del modelo")
