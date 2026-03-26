@@ -1523,9 +1523,9 @@ elif seccion == "🔥 Rachas":
 elif seccion == "📊 Gráficas":
     st.markdown("## 📊 Gráficas")
 
-    tab1, tab2, tab3 = st.tabs(["📊 V/D por jugador", "📈 % Victorias por jornada", "🎯 Diferencia juegos"])
+    tab1, tab2, tab3 = st.tabs(["📈 % Victorias por jornada", "📊 V/D por jugador", "🎯 Diferencia juegos"])
 
-    with tab1:
+    with tab2:
         plot_data = clasificacion.sort_values("partidos_jugados", ascending=False)
         fig, ax = plt.subplots(figsize=(12, 6))
         fig.patch.set_facecolor("#0d1117")
@@ -1555,7 +1555,7 @@ elif seccion == "📊 Gráficas":
         st.pyplot(fig)
         plt.close()
 
-    with tab2:
+    with tab1:
         fig, ax = plt.subplots(figsize=(14, 6))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
