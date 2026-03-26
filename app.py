@@ -641,7 +641,19 @@ def _diff_juegos_norm(df, nombre):
     p = sub["juegos_perdidos"].sum()
     total = g + p
     return (g / total) if total > 0 else 0.5
- 
+
+def _peso_h2h_dinamico(n_partidos, peso_base):
+    """
+    Ajusta el peso del H2H pareja exacta según número de partidos.
+    """
+    if n_partidos == 0:
+        return 0.0
+    elif n_partidos == 1:
+        return peso_base * 0.35
+    elif n_partidos <= 3:
+        return peso_base * 0.7
+    else:
+        return peso_base
  
 def calcular_score(df_ref, eq1, eq2):
     vals = {}
@@ -649,29 +661,63 @@ def calcular_score(df_ref, eq1, eq2):
     exacto_eq1, n = _h2h_pareja_exacta(df_ref, eq1, eq2)
     exacto_eq2, _ = _h2h_pareja_exacta(df_ref, eq2, eq1)
 
-    # Si no hay datos exactos, este factor es neutro (0.5 para ambos)
-    vals["H2H pareja exacta"]       = (exacto_eq1, exacto_eq2)
+    # 🔥 Peso dinámico H2H pareja exacta
+    peso_base_h2h = PESOS.get("H2H pareja exacta", 0.0)
+    peso_h2h_real = _peso_h2h_dinamico(n, peso_base_h2h)
 
-    vals["H2H individual"]          = (_h2h_individual(df_ref, eq1, eq2),
-                                        _h2h_individual(df_ref, eq2, eq1))
-    vals["Rendimiento como pareja"] = (_winrate_pareja(df_ref, eq1[0], eq1[1]),
-                                        _winrate_pareja(df_ref, eq2[0], eq2[1]))
-    vals["Forma reciente (5p)"]     = ((_forma_reciente(df_ref, eq1[0]) + _forma_reciente(df_ref, eq1[1])) / 2,
-                                        (_forma_reciente(df_ref, eq2[0]) + _forma_reciente(df_ref, eq2[1])) / 2)
-    vals["Winrate histórico"]       = ((_winrate(df_ref, eq1[0]) + _winrate(df_ref, eq1[1])) / 2,
-                                        (_winrate(df_ref, eq2[0]) + _winrate(df_ref, eq2[1])) / 2)
-    vals["Diferencia de juegos"]    = ((_diff_juegos_norm(df_ref, eq1[0]) + _diff_juegos_norm(df_ref, eq1[1])) / 2,
-                                        (_diff_juegos_norm(df_ref, eq2[0]) + _diff_juegos_norm(df_ref, eq2[1])) / 2)
+    # Solo añadimos si hay datos suficientes
+    if peso_h2h_real > 0:
+        vals["H2H pareja exacta"] = (exacto_eq1, exacto_eq2)
 
+    # RESTO IGUAL
+    vals["H2H individual"] = (
+        _h2h_individual(df_ref, eq1, eq2),
+        _h2h_individual(df_ref, eq2, eq1)
+    )
+
+    vals["Rendimiento como pareja"] = (
+        _winrate_pareja(df_ref, eq1[0], eq1[1]),
+        _winrate_pareja(df_ref, eq2[0], eq2[1])
+    )
+
+    vals["Forma reciente (5p)"] = (
+        (_forma_reciente(df_ref, eq1[0]) + _forma_reciente(df_ref, eq1[1])) / 2,
+        (_forma_reciente(df_ref, eq2[0]) + _forma_reciente(df_ref, eq2[1])) / 2
+    )
+
+    vals["Winrate histórico"] = (
+        (_winrate(df_ref, eq1[0]) + _winrate(df_ref, eq1[1])) / 2,
+        (_winrate(df_ref, eq2[0]) + _winrate(df_ref, eq2[1])) / 2
+    )
+
+    vals["Diferencia de juegos"] = (
+        (_diff_juegos_norm(df_ref, eq1[0]) + _diff_juegos_norm(df_ref, eq1[1])) / 2,
+        (_diff_juegos_norm(df_ref, eq2[0]) + _diff_juegos_norm(df_ref, eq2[1])) / 2
+    )
+
+    # 🔢 CÁLCULO FINAL
     score_eq1, score_eq2 = 0.0, 0.0
+
     for feature, (v1, v2) in vals.items():
-        peso = PESOS.get(feature, 0.0)
+
+        # 👇 aquí está la magia
+        if feature == "H2H pareja exacta":
+            peso = peso_h2h_real
+        else:
+            peso = PESOS.get(feature, 0.0)
+
         total = v1 + v2
         p1, p2 = (v1 / total, v2 / total) if total > 0 else (0.5, 0.5)
+
         score_eq1 += peso * p1
         score_eq2 += peso * p2
 
     total_score = score_eq1 + score_eq2
+
+    # Protección extra (por si todos los pesos son 0)
+    if total_score == 0:
+        return 0.5, 0.5, vals
+
     score_eq1 /= total_score
     score_eq2 /= total_score
 
