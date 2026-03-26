@@ -843,11 +843,34 @@ if seccion == "🏆 Clasificación":
 
     # Métricas top
     lider = clasificacion.iloc[0]
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("🥇 Líder", lider["nombre"])
-    col2.metric("📊 Partidos jugados", df["id_partido"].nunique())
-    col3.metric("🗓️ Jornadas", df["id_jornada"].nunique())
-    col4.metric("👥 Jugadores", len(clasificacion))
+
+    # Valores
+    num_partidos = df["id_partido"].nunique()
+    num_jornadas = df["id_jornada"].nunique()
+    num_jugadores = len(clasificacion)
+
+    st.markdown(f"""
+    <div style="background:#0d1117; border:1px solid #30363d; border-radius:12px; padding:16px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; gap:16px;">
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">🥇 Líder</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{lider['nombre']}</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">📊 Partidos jugados</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{num_partidos}</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">🗓️ Jornadas</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{num_jornadas}</div>
+            </div>
+            <div style="flex:1; text-align:center;">
+                <div style="color:#8b949e; font-size:0.8rem;">👥 Jugadores</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{num_jugadores}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
