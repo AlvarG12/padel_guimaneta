@@ -1736,6 +1736,5 @@ elif seccion == "💻 Predictor":
                         background:#161b22;border:1px solid #30363d;border-radius:8px;
                         padding:10px 16px;margin-bottom:6px;">
                 <span style="color:#e6edf3;">{feature}</span>
-                <span style="color:#238636;font-weight:700;font-size:1rem;">{int(peso*100)}%</span>
             </div>
             """, unsafe_allow_html=True)
