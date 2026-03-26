@@ -209,8 +209,12 @@ def calcular_parejas(df):
 @st.cache_data
 def calcular_rachas(df):
     rachas_activas, rachas_max_v, rachas_max_d = [], [], []
+
+    df = df.copy()
+    df["_id_partido_num"] = df["id_partido"].astype(str).str.split("_").str[0].astype(int)
+
     for nombre in df["nombre"].unique():
-        df_j = df[df["nombre"] == nombre].sort_values(by=["id_jornada", "id_partido"])
+        df_j = df[df["nombre"] == nombre].sort_values(by=["id_jornada", "_id_partido_num"])
         if df_j.empty:
             continue
 
@@ -256,17 +260,23 @@ def calcular_rachas_historicas(df):
     rachas_victorias = []
     rachas_derrotas = []
 
+    # Extraer el número real del id_partido (antes del "_") para ordenar correctamente
+    df = df.copy()
+    df["_id_partido_num"] = df["id_partido"].astype(str).str.split("_").str[0].astype(int)
+
     for nombre_jugador in df['nombre'].unique():
-        df_jugador = df[df['nombre'] == nombre_jugador].sort_values(by=['id_jornada', 'id_partido'])
+        df_jugador = df[df['nombre'] == nombre_jugador].sort_values(
+            by=["id_jornada", "_id_partido_num"]  # ← orden correcto: jornada numérica + partido numérico
+        )
 
         # 🔥 RACHAS DE VICTORIAS
         current_racha = 0
         current_partidos = []
 
         for _, row in df_jugador.iterrows():
+            partido_limpio = str(row['id_partido']).split("_")[0]
             if row['victoria']:
                 current_racha += 1
-                partido_limpio = str(row['id_partido']).split("_")[0]
                 current_partidos.append(partido_limpio)
             else:
                 if current_racha > 0:
@@ -290,9 +300,9 @@ def calcular_rachas_historicas(df):
         current_partidos = []
 
         for _, row in df_jugador.iterrows():
+            partido_limpio = str(row['id_partido']).split("_")[0]
             if not row['victoria']:
                 current_racha += 1
-                partido_limpio = str(row['id_partido']).split("_")[0]
                 current_partidos.append(partido_limpio)
             else:
                 if current_racha > 0:
