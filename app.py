@@ -1579,24 +1579,32 @@ elif seccion == "💻 Predictor":
         st.markdown("#### 🔍 Desglose por factor")
  
         _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
-        if n_exactos >= 2:
-            h2h_fuente = f"✅ {n_exactos} partidos exactos"
-        elif n_exactos == 1:
-            h2h_fuente = "⚠️ solo 1 partido exacto"
-        else:
-            h2h_fuente = "ℹ️ sin enfrentamiento exacto — factor neutro (50%)"
- 
+
         for feature, peso in PESOS.items():
+
+            # 🔥 SI NO EXISTE (porque no hay datos) → SKIP
+            if feature not in desglose:
+                continue
+
             v1, v2 = desglose[feature]
+
             ventaja1 = v1 >= v2
             color1 = "#1f6feb" if ventaja1 else "#8b949e"
             color2 = "#da3633" if not ventaja1 else "#8b949e"
             icono = "🔵" if ventaja1 else "🔴"
+
             bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
             bar_eq2 = 100 - bar_eq1
-            nota = f"<div style='color:#8b949e;font-size:0.75rem;margin-top:4px;'>{h2h_fuente}</div>" \
-                   if feature == "H2H pareja exacta" else ""
- 
+
+            # 🔥 texto dinámico SOLO si hay datos
+            if feature == "H2H pareja exacta":
+                if n_exactos > 0:
+                    nota = f"<div style='color:#8b949e;font-size:0.75rem;margin-top:4px;'>📊 {n_exactos} partidos exactos</div>"
+                else:
+                    nota = ""
+            else:
+                nota = ""
+
             st.markdown(f"""
             <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
                         padding:12px 16px;margin-bottom:8px;">
