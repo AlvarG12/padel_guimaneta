@@ -927,6 +927,28 @@ elif seccion == "📋 Detalle":
 
     st.divider()
 
+    st.markdown("### 🧾 Información de la jornada")
+
+    # Filtrar datos de la jornada
+    df_jornada_simple = df[df["id_jornada"] == jornada_sel].copy()
+
+    # Tomamos una fila representativa
+    fila_info = df_jornada_simple.drop_duplicates("id_partido").iloc[0]
+
+    # Valores
+    sede = fila_info["sede"] if "sede" in fila_info else "N/A"
+    fecha = fila_info["fecha"] if "fecha" in fila_info else "N/A"
+    num_partidos = df_jornada_simple["id_partido"].nunique()
+
+    # Métricas estilo tablero
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("🗓️ Jornada", jornada_sel)
+    col2.metric("📍 Sede", sede)
+    col3.metric("📅 Fecha", fecha)
+    col4.metric("🎾 Partidos", num_partidos)
+
+    st.divider()
+
     # 🏆 CLASIFICACIÓN DE ESA JORNADA (SOLO ESA JORNADA)
     st.markdown("### 🏆 Clasificación de la jornada")
 
