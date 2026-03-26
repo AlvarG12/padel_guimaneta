@@ -985,21 +985,27 @@ elif seccion == "📋 Detalle":
     # 🧪 DEBUG (puedes quitar luego)
     st.write(f"Partidos encontrados: {partidos_jornada['id_partido'].nunique()}")
 
-    # Agrupar por partido
-    for partido_id, grupo in partidos_jornada.groupby("id_partido"):
+    # 🔥 ORDENAR PARTIDOS POR NÚMERO REAL
+    partidos_jornada["_num"] = partidos_jornada["id_partido"].astype(str).str.split("_").str[0].astype(int)
+    partidos_jornada = partidos_jornada.sort_values("_num")
 
-        # Obtener equipos
+    # Agrupar por partido (ya ordenado)
+    for partido_id, grupo in partidos_jornada.groupby("id_partido", sort=False):
+
+        # 🔢 Número limpio del partido
+        num_partido = str(partido_id).split("_")[0]
+
+        # Equipos
         equipo1 = grupo[grupo["equipo"] == 1]["nombre"].tolist()
         equipo2 = grupo[grupo["equipo"] == 2]["nombre"].tolist()
 
-        # ⚠️ Evitar partidos incompletos
         if len(equipo1) < 1 or len(equipo2) < 1:
             continue
 
         eq1 = " y ".join(equipo1)
         eq2 = " y ".join(equipo2)
 
-        # Juegos (una sola fila vale)
+        # Juegos
         p_row = grupo.iloc[0]
         g1 = int(p_row["juegos_equipo1"])
         g2 = int(p_row["juegos_equipo2"])
@@ -1012,7 +1018,7 @@ elif seccion == "📋 Detalle":
             texto_ganador = f"{eq2} ganan el partido"
 
         st.markdown(
-            f"**{partido_id}. {eq1} vs {eq2}: {g1}-{g2}**  \n"
+            f"**{num_partido}. {eq1} vs {eq2}: {g1}-{g2}**  \n"
             f"_{texto_ganador}_"
         )
 
