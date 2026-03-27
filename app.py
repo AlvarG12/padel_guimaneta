@@ -1037,9 +1037,21 @@ elif seccion == "📋 Detalle":
     # Tomamos una fila representativa
     fila_info = df_jornada_simple.drop_duplicates("id_partido").iloc[0]
 
-    # Valores
+    # --- LÓGICA DE FECHA FORMATEADA ---
+    fecha_raw = fila_info["fecha"] if "fecha" in fila_info else None
+    fecha_formateada = "N/A"
+
+    if fecha_raw and fecha_raw != "N/A":
+        try:
+            # Intentamos convertir el string (asumiendo formato YYYY-MM-DD)
+            fecha_dt = pd.to_datetime(fecha_raw)
+            # Formato: día, mes abreviado en minúsculas (o como prefieras) y año
+            fecha_formateada = fecha_dt.strftime("%d %b %Y").lower() 
+        except:
+            fecha_formateada = fecha_raw # Si falla, dejamos la original
+    # ----------------------------------
+
     sede = fila_info["sede"] if "sede" in fila_info else "N/A"
-    fecha = fila_info["fecha"] if "fecha" in fila_info else "N/A"
     num_partidos = df_jornada_simple["id_partido"].nunique()
 
     # ── Contenedor estilizado ──
