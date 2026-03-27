@@ -655,7 +655,7 @@ def _peso_h2h_dinamico(n_partidos, peso_base):
         return 0.0
     elif n_partidos == 1:
         return peso_base * 0.35
-    elif n_partidos <= 3:
+    elif n_partidos < 2:
         return peso_base * 0.7
     else:
         return peso_base
