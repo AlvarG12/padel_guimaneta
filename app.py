@@ -2045,14 +2045,18 @@ elif seccion == "🧮 Simulador":
             
             # Verificar si ya está por delante
             if pos_atras <= pos_delante:
-                st.success(f"🎉 **{jugador_atras}** ya está por delante de **{jugador_delante}** (posición #{pos_atras+1} vs #{pos_delante+1})")
+                st.success(f"🎉 **{jugador_atras}** ya está por delante de **{jugador_delante}** (posición #{pos_atras} vs #{pos_delante})")
             else:
                 st.divider()
                 
-                # Diferencias actuales
-                diff_victorias = stats_delante["victorias"] - stats_atras["victorias"]
+                # Stats actuales
+                v_atras = int(stats_atras["victorias"])
+                v_delante = int(stats_delante["victorias"])
+                pj_atras = int(stats_atras["partidos_jugados"])
+                pj_delante = int(stats_delante["partidos_jugados"])
+                pct_atras = stats_atras["porcentaje_victorias"]
+                pct_delante = stats_delante["porcentaje_victorias"]
                 diff_juegos = stats_delante["diferencia_juegos"] - stats_atras["diferencia_juegos"]
-                diff_pct = stats_delante["porcentaje_victorias"] - stats_atras["porcentaje_victorias"]
                 
                 st.markdown(f"""
                 <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
@@ -2061,27 +2065,42 @@ elif seccion == "🧮 Simulador":
                     <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
                         <div>
                             <div style="color:#da3633;font-weight:600;font-size:1.1rem;">{jugador_atras}</div>
-                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_atras+1}</div>
+                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_atras}</div>
                         </div>
                         <div style="text-align:right;">
                             <div style="color:#238636;font-weight:600;font-size:1.1rem;">{jugador_delante}</div>
-                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_delante+1}</div>
+                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_delante}</div>
                         </div>
                     </div>
                     <div style="color:#ffffff;font-size:0.9rem;">
-                        <div>📊 Diferencia: {int(diff_victorias)} victorias · {int(diff_juegos)} juegos · {diff_pct:.2f}% winrate</div>
+                        <div>📊 {jugador_atras}: {v_atras}V de {pj_atras}PJ ({pct_atras:.1f}%)</div>
+                        <div>📊 {jugador_delante}: {v_delante}V de {pj_delante}PJ ({pct_delante:.1f}%)</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # CÁLCULO: ¿Cuántas victorias necesita?
-                # Escenario 1: El de delante no gana nada más (mejor caso)
-                victorias_necesarias_mejor = int(diff_victorias) + 1
+                # CÁLCULO CORRECTO
+                # Mejor caso: el de delante no juega más
+                victorias_mejor = 0
+                for x in range(1, 50):  # máximo 50 victorias
+                    nuevo_pct = (v_atras + x) / (pj_atras + x) * 100
+                    if nuevo_pct > pct_delante:
+                        victorias_mejor = x
+                        break
                 
-                # Escenario 2: Ambos juegan igual (caso realista)
-                # Necesita igualar victorias + superar en diferencia de juegos
-                # Asumimos victorias 2-0 para maximizar diferencia
-                victorias_necesarias_realista = max(int(diff_victorias) + 1, int(diff_juegos / 2) + 1)
+                # Caso realista: ambos ganan la mitad de lo que les queda
+                # Asumimos que ambos juegan ~5 partidos más
+                victorias_realista = 0
+                partidos_extra_delante = 5
+                victorias_extra_delante = int(partidos_extra_delante * (pct_delante / 100))
+                
+                nuevo_pct_delante = (v_delante + victorias_extra_delante) / (pj_delante + partidos_extra_delante) * 100
+                
+                for x in range(1, 50):
+                    nuevo_pct_atras = (v_atras + x) / (pj_atras + x) * 100
+                    if nuevo_pct_atras > nuevo_pct_delante:
+                        victorias_realista = x
+                        break
                 
                 st.markdown("### 📋 Escenarios posibles")
                 
@@ -2093,10 +2112,10 @@ elif seccion == "🧮 Simulador":
                         ✅ Mejor caso
                     </div>
                     <div style="color:#ffffff;font-size:1rem;">
-                        {jugador_atras} necesita ganar <span style="color:#238636;font-weight:700;font-size:1.2rem;">{victorias_necesarias_mejor}</span> partido(s) más
+                        {jugador_atras} necesita ganar <span style="color:#238636;font-weight:700;font-size:1.2rem;">{victorias_mejor}</span> partido(s) más
                     </div>
                     <div style="color:#8b949e;font-size:0.85rem;margin-top:6px;">
-                        (asumiendo que {jugador_delante} no gana ninguno más)
+                        (si {jugador_delante} no gana ninguno más)
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -2109,10 +2128,10 @@ elif seccion == "🧮 Simulador":
                         ⚠️ Caso realista
                     </div>
                     <div style="color:#ffffff;font-size:1rem;">
-                        Si ambos siguen ganando, {jugador_atras} necesita aproximadamente <span style="color:#d29922;font-weight:700;font-size:1.2rem;">{victorias_necesarias_realista}</span> victorias con marcador 2-0
+                        Si {jugador_delante} mantiene su {pct_delante:.1f}% de victorias, {jugador_atras} necesita ganar <span style="color:#d29922;font-weight:700;font-size:1.2rem;">{victorias_realista}</span> partidos
                     </div>
                     <div style="color:#8b949e;font-size:0.85rem;margin-top:6px;">
-                        (para superar tanto en victorias como en diferencia de juegos)
+                        (ambos jugando ~5 partidos más)
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
