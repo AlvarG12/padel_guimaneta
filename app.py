@@ -1787,15 +1787,36 @@ elif seccion == "💻 Predictor":
                 except:
                     fecha_str = "S/D"
                 
+                nombres_partido = df_hist[df_hist["id_partido"] == pid]["nombre"].tolist()
+                set_eq1_actual = set(eq1)
+                jugadores_azul = [n for n in nombres_partido if n in set_eq1_actual]
+                jugadores_rojo = [n for n in nombres_partido if n not in set_eq1_actual]
+                
+                txt_azul = " & ".join(jugadores_azul)
+                txt_rojo = " & ".join(jugadores_rojo)
+
                 st.markdown(f"""
-                <div style="background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:0.8rem; color:#8b949e;">{fecha_str}</div>
-                    <div style="font-weight:700; font-size:1.1rem;">
-                        <span style="color:#1f6feb;">{res_azul}</span> 
-                        <span style="color:#8b949e;"> - </span> 
-                        <span style="color:#da3633;">{res_rojo}</span>
+                <div style="background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:12px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-size:0.75rem; color:#8b949e; font-weight:500;">📅 {fecha_str}</span>
+                        <span style="font-size:0.65rem; color:#238636; background:#23863622; padding:2px 8px; border-radius:4px; border:1px solid #23863644;">FINALIZADO</span>
                     </div>
-                    <div style="font-size:0.7rem; color:#238636; background:#23863622; padding:2px 6px; border-radius:4px;">FINALIZADO</div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                        <div style="flex:1; text-align:right; color:#1f6feb; font-weight:600; font-size:0.9rem;">
+                            {txt_azul}
+                        </div>
+                        
+                        <div style="background:#161b22; padding:4px 12px; border-radius:6px; border:1px solid #30363d; min-width:80px; text-align:center;">
+                            <span style="font-weight:800; font-size:1.2rem; color:#1f6feb;">{res_azul}</span>
+                            <span style="color:#8b949e; margin:0 4px; font-weight:400;">-</span>
+                            <span style="font-weight:800; font-size:1.2rem; color:#da3633;">{res_rojo}</span>
+                        </div>
+                        
+                        <div style="flex:1; text-align:left; color:#da3633; font-weight:600; font-size:0.9rem;">
+                            {txt_rojo}
+                        </div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
             st.divider()
