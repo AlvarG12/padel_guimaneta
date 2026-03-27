@@ -2010,87 +2010,112 @@ elif seccion == "🧮 Calculadora":
                 """, unsafe_allow_html=True)
     
     # ═══════════════════════════════════════════════════════════════════════
-# TAB 2: ¿QUÉ NECESITO? (Versión Optimizada)
-# ═══════════════════════════════════════════════════════════════════════
-with tab2:
-    st.markdown("### 🎯 Análisis de remontada")
-    
-    nombres_lista = sorted(clasificacion["nombre"].tolist())
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        jugador_atras = st.selectbox("¿Qué necesita...", nombres_lista, key="calc_j1")
-    with col2:
-        opciones_delante = [n for n in nombres_lista if n != jugador_atras]
-        jugador_delante = st.selectbox("...para adelantar a?", opciones_delante, key="calc_j2")
-    
-    if st.button("🔍 Calcular escenarios", use_container_width=True, type="primary"):
-        stats_atras = clasificacion[clasificacion["nombre"] == jugador_atras].iloc[0]
-        stats_delante = clasificacion[clasificacion["nombre"] == jugador_delante].iloc[0]
+    # TAB 2: ¿QUÉ NECESITO?
+    # ═══════════════════════════════════════════════════════════════════════
+    with tab2:
+        st.markdown("### Calcula qué necesitas para adelantar a otro jugador")
         
-        pos_atras = clasificacion.index[clasificacion["nombre"] == jugador_atras][0]
-        pos_delante = clasificacion.index[clasificacion["nombre"] == jugador_delante][0]
+        nombres_lista = sorted(clasificacion["nombre"].tolist())
         
-        if pos_atras <= pos_delante:
-            st.success(f"🎉 **{jugador_atras}** ya está por delante de **{jugador_delante}**")
-        else:
-            # --- DATOS BASE ---
-            v_a, pj_a = int(stats_atras["victorias"]), int(stats_atras["partidos_jugados"])
-            v_d, pj_d = int(stats_delante["victorias"]), int(stats_delante["partidos_jugados"])
-            pct_d = stats_delante["porcentaje_victorias"]
-
-            # 1. ESCENARIO ESTÁTICO (El de los "46 partidos")
-            vics_estatico = 0
-            for x in range(1, 101):
-                if ((v_a + x) / (pj_a + x)) * 100 > pct_d:
-                    vics_estatico = x
-                    break
-
-            # 2. ESCENARIO CRUCE DIRECTO (Tú ganas, él pierde)
-            vics_cruce = 0
-            for x in range(1, 50):
-                # En cada partido: tú +1V y +1PJ | él +0V y +1PJ
-                if ((v_a + x) / (pj_a + x)) > (v_d / (pj_d + x)):
-                    vics_cruce = x
-                    break
-
-            # 3. JUSTICIA POR VOLUMEN (Si él jugara los mismos que tú pero perdiendo)
-            # ¿A cuánto bajaría su % si tuviera tus mismos PJ?
-            pj_diff = max(0, pj_a - pj_d)
-            pct_proyectado_rival = (v_d / max(pj_a, pj_d)) * 100
-            vics_justicia = 0
-            for x in range(1, 50):
-                if ((v_a + x) / (pj_a + x)) * 100 > pct_proyectado_rival:
-                    vics_justicia = x
-                    break
-
-            # --- RENDERIZADO DE BLOQUES ---
-            st.divider()
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            jugador_atras = st.selectbox(
+                "¿Qué necesita...",
+                nombres_lista,
+                key="calc_j1"
+            )
+        
+        with col2:
+            opciones_delante = [n for n in nombres_lista if n != jugador_atras]
+            jugador_delante = st.selectbox(
+                "...para adelantar a?",
+                opciones_delante,
+                key="calc_j2"
+            )
+        
+        if st.button("🔍 Calcular", use_container_width=True, type="primary"):
             
-            # Bloque 1: Cruce Directo (El más realista)
-            st.markdown(f"""
-            <div style="background:#1c2128; border:1px solid #2188ff; border-radius:10px; padding:15px; margin-bottom:10px;">
-                <h4 style="color:#2188ff; margin:0;">⚔️ Escenario: Cruce Directo</h4>
-                <p style="margin:10px 0; font-size:1.1rem;">Necesitas ganar <b>{vics_cruce} partido(s)</b> contra él.</p>
-                <p style="color:#8b949e; font-size:0.85rem;">Si jugáis cara a cara, tu porcentaje sube y el suyo baja rápidamente. Es el camino más corto.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Bloque 2: Justicia por Volumen
-            st.markdown(f"""
-            <div style="background:#1c2128; border:1px solid #db6d28; border-radius:10px; padding:15px; margin-bottom:10px;">
-                <h4 style="color:#db6d28; margin:0;">⚖️ Escenario: Justicia por Volumen</h4>
-                <p style="margin:10px 0; font-size:1.1rem;">Necesitas <b>{vics_justicia} victoria(s)</b> adicionales.</p>
-                <p style="color:#8b949e; font-size:0.85rem;">Calculado asumiendo que {jugador_delante} igualara tus {pj_a} partidos jugados manteniendo sus victorias actuales.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Bloque 3: El Muro (Estático)
-            txt_muro = f"{vics_estatico} partidos" if vics_estatico < 50 else "Inalcanzable hoy"
-            st.markdown(f"""
-            <div style="background:#1c2128; border:1px solid #30363d; border-radius:10px; padding:15px;">
-                <h4 style="color:#8b949e; margin:0;">📉 Escenario: El Muro</h4>
-                <p style="margin:10px 0; font-size:1.1rem;">Necesitas <b>{txt_muro}</b> seguidos.</p>
-                <p style="color:#8b949e; font-size:0.85rem;">Si {jugador_delante} no vuelve a jugar nunca más y mantiene su % intacto.</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # Obtener stats actuales
+            stats_atras = clasificacion[clasificacion["nombre"] == jugador_atras].iloc[0]
+            stats_delante = clasificacion[clasificacion["nombre"] == jugador_delante].iloc[0]
+            
+            pos_atras = clasificacion.index[clasificacion["nombre"] == jugador_atras][0]
+            pos_delante = clasificacion.index[clasificacion["nombre"] == jugador_delante][0]
+            
+            # Verificar si ya está por delante
+            if pos_atras <= pos_delante:
+                st.success(f"🎉 **{jugador_atras}** ya está por delante de **{jugador_delante}** (posición #{pos_atras} vs #{pos_delante})")
+            else:
+                st.divider()
+                
+                # Stats actuales
+                v_atras = int(stats_atras["victorias"])
+                v_delante = int(stats_delante["victorias"])
+                pj_atras = int(stats_atras["partidos_jugados"])
+                pj_delante = int(stats_delante["partidos_jugados"])
+                pct_atras = stats_atras["porcentaje_victorias"]
+                pct_delante = stats_delante["porcentaje_victorias"]
+                diff_juegos = stats_delante["diferencia_juegos"] - stats_atras["diferencia_juegos"]
+                
+                st.markdown(f"""
+                <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
+                            padding:16px;margin-bottom:16px;">
+                    <div style="color:#8b949e;font-size:0.9rem;margin-bottom:8px;">Situación actual</div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+                        <div>
+                            <div style="color:#da3633;font-weight:600;font-size:1.1rem;">{jugador_atras}</div>
+                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_atras}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#238636;font-weight:600;font-size:1.1rem;">{jugador_delante}</div>
+                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_delante}</div>
+                        </div>
+                    </div>
+                    <div style="color:#ffffff;font-size:0.9rem;">
+                        <div>📊 {jugador_atras}: {v_atras}V de {pj_atras}PJ ({pct_atras:.1f}%)</div>
+                        <div>📊 {jugador_delante}: {v_delante}V de {pj_delante}PJ ({pct_delante:.1f}%)</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # CÁLCULO CORRECTO
+                # Mejor caso: el de delante no juega más
+                victorias_mejor = 0
+                for x in range(1, 50):  # máximo 50 victorias
+                    nuevo_pct = (v_atras + x) / (pj_atras + x) * 100
+                    if nuevo_pct > pct_delante:
+                        victorias_mejor = x
+                        break
+                
+                # Caso realista: ambos ganan la mitad de lo que les queda
+                # Asumimos que ambos juegan ~5 partidos más
+                victorias_realista = 0
+                partidos_extra_delante = 5
+                victorias_extra_delante = int(partidos_extra_delante * (pct_delante / 100))
+                
+                nuevo_pct_delante = (v_delante + victorias_extra_delante) / (pj_delante + partidos_extra_delante) * 100
+                
+                for x in range(1, 50):
+                    nuevo_pct_atras = (v_atras + x) / (pj_atras + x) * 100
+                    if nuevo_pct_atras > nuevo_pct_delante:
+                        victorias_realista = x
+                        break
+                
+                st.markdown("### 📋 Escenarios posibles")
+                
+                # Mejor caso
+                st.markdown(f"""
+                <div style="background:#161b22;border:1px solid #238636;border-radius:10px;
+                            padding:14px;margin-bottom:12px;">
+                    <div style="color:#238636;font-weight:700;font-size:1.1rem;margin-bottom:8px;">
+                        ✅ Mejor caso
+                    </div>
+                    <div style="color:#ffffff;font-size:1rem;">
+                        {jugador_atras} necesita ganar <span style="color:#238636;font-weight:700;font-size:1.2rem;">{victorias_mejor}</span> partido(s) más
+                    </div>
+                    <div style="color:#8b949e;font-size:0.85rem;margin-top:6px;">
+                        (si {jugador_delante} no juega ninguno más)
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
