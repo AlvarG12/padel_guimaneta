@@ -1782,7 +1782,10 @@ elif seccion == "💻 Predictor":
                 res_rojo = j2 if es_eq1_azul else j1
                 
                 # Formatear fecha si existe
-                fecha_str = partido["fecha"] if "fecha" in partido else "N/A"
+                try:
+                    fecha_str = pd.to_datetime(partido["fecha"]).strftime("%d/%m/%Y")
+                except:
+                    fecha_str = "S/D"
                 
                 st.markdown(f"""
                 <div style="background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
