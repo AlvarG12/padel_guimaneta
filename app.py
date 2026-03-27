@@ -2234,7 +2234,7 @@ elif seccion == "🧮 Calculadora":
             
             if pos_actual <= pos_deseada:
                 st.balloons()
-                st.success(f"⭐ ¡Ya estás en el objetivo! Actualmente eres el **#{pos_actual}**. ¡A mantenerlo!")
+                st.success(f"⭐ ¡Ya estás en el objetivo! Actualmente eres el **#{pos_actual}**.")
             else:
                 st.info(f"Para ser **#{pos_deseada}**, tienes que superar el **{rival_objetivo['porcentaje_victorias']}%** de **{nombre_rival}**.")
                 
