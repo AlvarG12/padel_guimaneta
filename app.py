@@ -1756,6 +1756,47 @@ elif seccion == "💻 Predictor":
  
         st.divider()
  
+        # ── 🔥 NUEVO: LISTADO DE ENFRENTAMIENTOS PREVIOS ──
+        _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
+        
+        if n_exactos > 0:
+            st.markdown(f"#### 🎾 Historial Directo ({n_exactos} partidos)")
+            
+            # Buscamos los IDs de los partidos exactos
+            p_ids = set()
+            for e1, e2 in [(1, 2), (2, 1)]:
+                p_j1a = set(df_hist[(df_hist["nombre"] == eq1[0]) & (df_hist["equipo"] == e1)]["id_partido"])
+                p_j1b = set(df_hist[(df_hist["nombre"] == eq1[1]) & (df_hist["equipo"] == e1)]["id_partido"])
+                p_j2a = set(df_hist[(df_hist["nombre"] == eq2[0]) & (df_hist["equipo"] == e2)]["id_partido"])
+                p_j2b = set(df_hist[(df_hist["nombre"] == eq2[1]) & (df_hist["equipo"] == e2)]["id_partido"])
+                p_ids.update(p_j1a & p_j1b & p_j2a & p_j2b)
+
+            # Mostrar cada partido en un pequeño contenedor
+            for pid in sorted(list(p_ids), reverse=True): # Los más recientes primero
+                partido = df_hist[df_hist["id_partido"] == pid].iloc[0]
+                j1 = partido["juegos_equipo1"]
+                j2 = partido["juegos_equipo2"]
+                # Determinar quién es equipo 1 en ese partido para pintar bien el color
+                es_eq1_azul = (partido["nombre"] in eq1)
+                res_azul = j1 if es_eq1_azul else j2
+                res_rojo = j2 if es_eq1_azul else j1
+                
+                # Formatear fecha si existe
+                fecha_str = partido["fecha"] if "fecha" in partido else "N/A"
+                
+                st.markdown(f"""
+                <div style="background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:0.8rem; color:#8b949e;">{fecha_str}</div>
+                    <div style="font-weight:700; font-size:1.1rem;">
+                        <span style="color:#1f6feb;">{res_azul}</span> 
+                        <span style="color:#8b949e;"> - </span> 
+                        <span style="color:#da3633;">{res_rojo}</span>
+                    </div>
+                    <div style="font-size:0.7rem; color:#238636; background:#23863622; padding:2px 6px; border-radius:4px;">FINALIZADO</div>
+                </div>
+                """, unsafe_allow_html=True)
+            st.divider()
+
         # ── Desglose por factor ──
         st.markdown("#### 🔍 Desglose por factor")
  
