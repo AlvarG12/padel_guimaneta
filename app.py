@@ -837,7 +837,7 @@ with st.sidebar:
             "🔥 Rachas",
             "📊 Gráficas",
             "💻 Predictor",
-            "🧮 Simulador"
+            "🧮 Calculadora"
         ],
         label_visibility="collapsed"
     )
@@ -1762,8 +1762,8 @@ elif seccion == "💻 Predictor":
 # SECCIÓN: SIMULADOR (AÑADIR AL CÓDIGO PRINCIPAL DESPUÉS DE LA SECCIÓN PREDICTOR)
 # ═══════════════════════════════════════════════════════════════════════════
  
-elif seccion == "🧮 Simulador":
-    st.markdown("## 🧮 Simulador de Clasificación")
+elif seccion == "🧮 Calculadora":
+    st.markdown("## 🧮 Calculadora")
     
     tab1, tab2 = st.tabs(["📅 Simular Jornada", "🎯 ¿Qué necesito?"])
     
