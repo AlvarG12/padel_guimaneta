@@ -2119,19 +2119,3 @@ elif seccion == "🧮 Simulador":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                
-                # Caso realista
-                st.markdown(f"""
-                <div style="background:#161b22;border:1px solid #d29922;border-radius:10px;
-                            padding:14px;">
-                    <div style="color:#d29922;font-weight:700;font-size:1.1rem;margin-bottom:8px;">
-                        ⚠️ Caso realista
-                    </div>
-                    <div style="color:#ffffff;font-size:1rem;">
-                        Si {jugador_delante} mantiene su {pct_delante:.1f}% de victorias, {jugador_atras} necesita ganar <span style="color:#d29922;font-weight:700;font-size:1.2rem;">{victorias_realista}</span> partidos
-                    </div>
-                    <div style="color:#8b949e;font-size:0.85rem;margin-top:6px;">
-                        (ambos jugando ~5 partidos más)
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
