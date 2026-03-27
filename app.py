@@ -896,6 +896,61 @@ if seccion == "🏆 Clasificación":
     </div>
     """, unsafe_allow_html=True)
 
+    # TERMÓMETRO: TENDENCIAS Y RACHAS ACTUALES
+
+    # 1. CÁLCULO DE TENDENCIAS (Subidón y Bajón de %)
+    jor_actual = ranking_jornada["hasta_jornada"].max()
+    jor_previa = ranking_jornada[ranking_jornada["hasta_jornada"] < jor_actual]["hasta_jornada"].max()
+
+    subidon_txt, bajon_txt = "N/A", "N/A"
+
+    if pd.notna(jor_previa):
+        stats_ult = ranking_jornada[ranking_jornada["hasta_jornada"] == jor_actual][["nombre", "porcentaje_victorias"]]
+        stats_pen = ranking_jornada[ranking_jornada["hasta_jornada"] == jor_previa][["nombre", "porcentaje_victorias"]]
+        
+        tendencia = stats_ult.merge(stats_pen, on="nombre", suffixes=('_ult', '_pen'))
+        tendencia["dif"] = tendencia["porcentaje_victorias_ult"] - tendencia["porcentaje_victorias_pen"]
+        
+        s = tendencia.sort_values("dif", ascending=False).iloc[0]
+        b = tendencia.sort_values("dif", ascending=True).iloc[0]
+        
+        subidon_txt = f"{s['nombre']} (+{s['dif']:.1f}%)"
+        bajon_txt = f"{b['nombre']} ({b['dif']:.1f}%)"
+
+    # 2. CÁLCULO DE RACHAS ACTUALES (Usando rachas_activas_df)
+    racha_v = rachas_activas_df[rachas_activas_df["tipo_racha"] == "victorias"]
+    racha_d = rachas_activas_df[rachas_activas_df["tipo_racha"] == "derrotas"]
+
+    top_v_nom = racha_v.iloc[0]["nombre"] if not racha_v.empty else "-"
+    top_v_val = racha_v.iloc[0]["longitud"] if not racha_v.empty else 0
+
+    top_d_nom = racha_d.iloc[0]["nombre"] if not racha_d.empty else "-"
+    top_d_val = racha_d.iloc[0]["longitud"] if not racha_d.empty else 0
+
+    # 3. RENDERIZADO HTML
+    st.markdown(f"""
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px; border-left: 5px solid #238636;">
+            <div style="color: #8b949e; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">📈 El Subidón</div>
+            <div style="color: #ffffff; font-size: 1rem; font-weight: 700; margin-top: 4px;">{subidon_txt}</div>
+        </div>
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px; border-left: 5px solid #da3633;">
+            <div style="color: #8b949e; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">📉 El Bajón</div>
+            <div style="color: #ffffff; font-size: 1rem; font-weight: 700; margin-top: 4px;">{bajon_txt}</div>
+        </div>
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px; border-left: 5px solid #f1e05a;">
+            <div style="color: #8b949e; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">🔥 On Fire</div>
+            <div style="color: #ffffff; font-size: 1rem; font-weight: 700; margin-top: 4px;">{top_v_nom}</div>
+            <div style="color: #f1e05a; font-size: 0.85rem; font-weight: 600;">{top_v_val} victorias seguidas</div>
+        </div>
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px; border-left: 5px solid #8b949e;">
+            <div style="color: #8b949e; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">🧊 En el pozo</div>
+            <div style="color: #ffffff; font-size: 1rem; font-weight: 700; margin-top: 4px;">{top_d_nom}</div>
+            <div style="color: #8b949e; font-size: 0.85rem; font-weight: 600;">{top_d_val} derrotas seguidas</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.divider()
 
     # Tabla de clasificación estilizada
