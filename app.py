@@ -824,28 +824,21 @@ with st.sidebar:
 
     st.divider()
 
-    query_params = st.query_params
-    seccion_en_url = query_params.get("seccion", "🏆 Clasificación") # Por defecto la primera
-
-    # Definir las opciones
-    opciones_nav = [
-        "🏆 Clasificación", "📋 Detalle", "👤 Perfil Jugador", 
-        "⚔️ Enfrentamientos", "🤝 Parejas", "🔥 Rachas", 
-        "📊 Gráficas", "💻 Predictor", "🧮 Calculadora"
-    ]
-
-    # Buscar el índice de la sección que viene en la URL para que el radio la marque
-    try:
-        index_default = opciones_nav.index(seccion_en_url)
-    except ValueError:
-        index_default = 0
-
     # Navegación
     st.markdown("**🧭 Navegación**")
     seccion = st.radio(
         label="",
-        options=opciones_nav,
-        index=index_default,  # <--- Esto hace que se seleccione lo que diga la URL
+        options=[
+            "🏆 Clasificación",
+            "📋 Detalle",
+            "👤 Perfil Jugador",
+            "⚔️ Enfrentamientos",
+            "🤝 Parejas",
+            "🔥 Rachas",
+            "📊 Gráficas",
+            "💻 Predictor",
+            "🧮 Calculadora"
+        ],
         label_visibility="collapsed"
     )
 
