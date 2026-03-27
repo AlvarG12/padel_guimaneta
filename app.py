@@ -896,46 +896,6 @@ if seccion == "🏆 Clasificación":
     </div>
     """, unsafe_allow_html=True)
 
-    # --- CÁLCULOS PARA MÉTRICAS DE IMPACTO ---
-    # 1. Racha Activa más larga
-    top_racha_activa = rachas_activas_df.iloc[0] if not rachas_activas_df.empty else None
-
-    # 2. Máxima racha histórica de victorias en esta temporada
-    top_racha_historica = rachas_max_v_df.iloc[0] if not rachas_max_v_df.empty else None
-
-    # 3. El "Matagigantes" (Jugador con más juegos ganados vs el líder)
-    nombre_lider = lider['nombre']
-    partidos_vs_lider = df_enf[
-        ((df_enf['jugador1'] == nombre_lider) | (df_enf['jugador2'] == nombre_lider))
-    ]
-    # Buscamos quién le ha ganado más partidos al líder
-    matagigantes = "N/A"
-    if not partidos_vs_lider.empty:
-        # Lógica rápida: filtrar partidos donde el líder perdió y ver quién era el rival
-        # (Esto depende de cómo tengas estructurado df_enf, pero una métrica de 'Puntos vs Líder' mola)
-        pass
-
-    # --- RENDERIZADO DE LAS NUEVAS MÉTRICAS ---
-    st.markdown(f"""
-    <div style="display:flex; justify-content:space-between; gap:12px; margin-bottom:16px;">
-        <div style="flex:1; background:#161b22; border:1px solid #30363d; border-radius:10px; padding:12px; border-top: 3px solid #ff4b4b;">
-            <div style="color:#8b949e; font-size:0.75rem; text-transform:uppercase;">🔥 Racha Activa</div>
-            <div style="color:#ffffff; font-size:1.1rem; font-weight:700;">{top_racha_activa['nombre']}</div>
-            <div style="color:#ff4b4b; font-size:0.85rem; font-weight:600;">{top_racha_activa['longitud']} {top_racha_activa['tipo_racha']}</div>
-        </div>
-        <div style="flex:1; background:#161b22; border:1px solid #30363d; border-radius:10px; padding:12px; border-top: 3px solid #2188ff;">
-            <div style="color:#8b949e; font-size:0.75rem; text-transform:uppercase;">🏆 Récord Victorias</div>
-            <div style="color:#ffffff; font-size:1.1rem; font-weight:700;">{top_racha_historica['nombre']}</div>
-            <div style="color:#2188ff; font-size:0.85rem; font-weight:600;">{top_racha_historica['max_racha_victorias']} seguidas</div>
-        </div>
-        <div style="flex:1; background:#161b22; border:1px solid #30363d; border-radius:10px; padding:12px; border-top: 3px solid #f1e05a;">
-            <div style="color:#8b949e; font-size:0.75rem; text-transform:uppercase;">🎯 Efectividad</div>
-            <div style="color:#ffffff; font-size:1.1rem; font-weight:700;">{clasificacion.sort_values('porcentaje_victorias', ascending=False).iloc[0]['nombre']}</div>
-            <div style="color:#f1e05a; font-size:0.85rem; font-weight:600;">{clasificacion['porcentaje_victorias'].max():.1f}% Win Rate</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
     st.divider()
 
     # Tabla de clasificación estilizada
