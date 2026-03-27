@@ -1756,13 +1756,12 @@ elif seccion == "💻 Predictor":
  
         st.divider()
  
-        # ── 🔥 NUEVO: LISTADO DE ENFRENTAMIENTOS PREVIOS ──
+        # ── 🔥 HISTORIAL DE ENFRENTAMIENTOS PREVIOS (ORDENADO) ──
         _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
         
         if n_exactos > 0:
             st.markdown(f"#### 🎾 Historial Directo ({n_exactos} partidos)")
             
-            # Buscamos los IDs de los partidos exactos
             p_ids = set()
             for e1, e2 in [(1, 2), (2, 1)]:
                 p_j1a = set(df_hist[(df_hist["nombre"] == eq1[0]) & (df_hist["equipo"] == e1)]["id_partido"])
@@ -1771,31 +1770,54 @@ elif seccion == "💻 Predictor":
                 p_j2b = set(df_hist[(df_hist["nombre"] == eq2[1]) & (df_hist["equipo"] == e2)]["id_partido"])
                 p_ids.update(p_j1a & p_j1b & p_j2a & p_j2b)
 
-            # Mostrar cada partido en un pequeño contenedor
-            for pid in sorted(list(p_ids), reverse=True): # Los más recientes primero
+            # 🔄 ORDENACIÓN CRUCIAL: Temporada desc, ID desc
+            # Extraemos los datos únicos de esos partidos para ordenar
+            df_partidos_h2h = df_hist[df_hist["id_partido"].isin(p_ids)].drop_duplicates("id_partido")
+            # Ordenamos por temporada y luego por id_partido (ambos de más nuevo a más viejo)
+            df_partidos_h2h = df_partidos_h2h.sort_values(by=["temporada", "id_partido"], ascending=[False, False])
+            
+            lista_ids_ordenada = df_partidos_h2h["id_partido"].tolist()
+
+            for pid in lista_ids_ordenada:
                 partido = df_hist[df_hist["id_partido"] == pid].iloc[0]
-                j1 = partido["juegos_equipo1"]
-                j2 = partido["juegos_equipo2"]
-                # Determinar quién es equipo 1 en ese partido para pintar bien el color
-                es_eq1_azul = (partido["nombre"] in eq1)
-                res_azul = j1 if es_eq1_azul else j2
-                res_rojo = j2 if es_eq1_azul else j1
                 
-                # Formatear fecha si existe
+                # Fecha formateada
                 try:
                     fecha_str = pd.to_datetime(partido["fecha"]).strftime("%d/%m/%Y")
                 except:
                     fecha_str = "S/D"
+
+                # Marcador y Nombres
+                j1, j2 = partido["juegos_equipo1"], partido["juegos_equipo2"]
+                es_eq1_azul = (partido["nombre"] in eq1)
+                res_azul = j1 if es_eq1_azul else j2
+                res_rojo = j2 if es_eq1_azul else j1
                 
+                nombres_partido = df_hist[df_hist["id_partido"] == pid]["nombre"].tolist()
+                txt_azul = " & ".join([n for n in nombres_partido if n in eq1])
+                txt_rojo = " & ".join([n for n in nombres_partido if n not in eq1])
+
+                # Temporada para el badge
+                temp_label = f"T{partido['temporada']}" if "temporada" in partido else ""
+
                 st.markdown(f"""
-                <div style="background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:0.8rem; color:#8b949e;">{fecha_str}</div>
-                    <div style="font-weight:700; font-size:1.1rem;">
-                        <span style="color:#1f6feb;">{res_azul}</span> 
-                        <span style="color:#8b949e;"> - </span> 
-                        <span style="color:#da3633;">{res_rojo}</span>
+                <div style="background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:12px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-size:0.75rem; color:#8b949e; font-weight:500;">📅 {fecha_str} <b style="margin-left:8px; color:#58a6ff;">{temp_label}</b></span>
+                        <span style="font-size:0.65rem; color:#238636; background:#23863622; padding:2px 8px; border-radius:4px; border:1px solid #23863644;">FINALIZADO</span>
                     </div>
-                    <div style="font-size:0.7rem; color:#238636; background:#23863622; padding:2px 6px; border-radius:4px;">FINALIZADO</div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                        <div style="flex:1; text-align:right; color:#1f6feb; font-weight:600; font-size:0.9rem;">{txt_azul}</div>
+                        
+                        <div style="background:#161b22; padding:4px 12px; border-radius:6px; border:1px solid #30363d; min-width:80px; text-align:center;">
+                            <span style="font-weight:800; font-size:1.2rem; color:#1f6feb;">{res_azul}</span>
+                            <span style="color:#8b949e; margin:0 4px; font-weight:400;">-</span>
+                            <span style="font-weight:800; font-size:1.2rem; color:#da3633;">{res_rojo}</span>
+                        </div>
+                        
+                        <div style="flex:1; text-align:left; color:#da3633; font-weight:600; font-size:0.9rem;">{txt_rojo}</div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
             st.divider()
