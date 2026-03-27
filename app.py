@@ -849,8 +849,6 @@ with st.sidebar:
         label_visibility="collapsed"
     )
 
-    st.query_params["seccion"] = seccion
-
     st.divider()
 
     # Métricas rápidas
