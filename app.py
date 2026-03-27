@@ -1028,7 +1028,7 @@ elif seccion == "📋 Detalle":
     jornada_sel = st.select_slider(
         "Selecciona jornada",
         options=jornadas,
-        value=jornadas[0]  # valor inicial
+        value=jornadas[-1]  # valor inicial
     )
 
     # Filtrar datos de la jornada
