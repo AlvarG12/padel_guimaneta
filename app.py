@@ -567,12 +567,12 @@ def calcular_rachas_historicas(df):
 
 
 PESOS = {
-    "H2H pareja exacta":         0.32,
+    "H2H pareja exacta":         0.35,
     "H2H individual":            0.10,
     "Rendimiento como pareja":   0.32,
     "Forma reciente (5 partidos)":0.03,
     "Winrate histórico":         0.20,
-    "Diferencia de juegos":      0.03,
+    "Diferencia de juegos":      0.00,
 }
  
 # ─────────────────────────────────────────────────────────────────────────────
