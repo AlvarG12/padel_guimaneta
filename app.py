@@ -2279,5 +2279,3 @@ elif seccion == "🧮 Calculadora":
                         <div style="color:#8b949e; font-size:0.85rem;">Ganados cara a cara contra <b>{nombre_rival}</b> para quitarle el puesto.</div>
                     </div>
                     """, unsafe_allow_html=True)
-
-                st.warning(f"💡 **Consejo:** Cuanto más arriba quieras llegar, más partidos seguidos necesitarás. ¡Paciencia, {soy_yo}!")
