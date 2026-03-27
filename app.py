@@ -638,24 +638,6 @@ def _h2h_individual(df, eq1, eq2):
                 total += len(enf)
     return wins / total if total > 0 else 0.5
  
- 
-def _h2h(df, eq1, eq2):
-    """
-    - >= 2 partidos exactos  → solo pareja exacta
-    -  = 1 partido exacto    → 60% exacto + 40% individual
-    -  = 0 partidos exactos  → solo individual
-    """
-    exacto, n = _h2h_pareja_exacta(df, eq1, eq2)
-    individual = _h2h_individual(df, eq1, eq2)
- 
-    if n >= 2:
-        return exacto
-    elif n == 1:
-        return 0.6 * exacto + 0.4 * individual
-    else:
-        return individual
- 
- 
 def _diff_juegos_norm(df, nombre):
     sub = df[df["nombre"] == nombre]
     if len(sub) == 0:
