@@ -952,6 +952,7 @@ if seccion == "🏆 Clasificación":
     """, unsafe_allow_html=True)
 
     st.divider()
+    st.markdown("## 🏆 Clasificación General")
 
     # Tabla de clasificación estilizada
     tabla = clasificacion[[
