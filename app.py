@@ -863,7 +863,7 @@ df_rachas_v, df_rachas_d = calcular_rachas_historicas(df)
 # SECCIÓN: CLASIFICACIÓN
 # ─────────────────────────────────────────────────────────────────────────────
 if seccion == "🏆 Clasificación":
-    st.markdown("## 🏆 Clasificación General")
+    st.markdown(f"## 🎾 PÁDEL GUIMANETA {temporada_sel}")
 
     # Métricas top
     lider = clasificacion.iloc[0]
