@@ -1795,7 +1795,7 @@ elif seccion == "🧮 Calculadora":
             
             with col1:
                 j1 = st.selectbox(
-                    "Jugador 1",
+                    "Jugador 1 (Equipo 1)",
                     nombres_disponibles,
                     key=f"sim_j1_{i}"
                 )
@@ -1803,7 +1803,7 @@ elif seccion == "🧮 Calculadora":
             with col2:
                 opciones_j2 = [n for n in nombres_disponibles if n != j1]
                 j2 = st.selectbox(
-                    "Jugador 2",
+                    "Jugador 2 (Equipo 1)",
                     opciones_j2,
                     key=f"sim_j2_{i}"
                 )
@@ -1811,7 +1811,7 @@ elif seccion == "🧮 Calculadora":
             with col3:
                 opciones_j3 = [n for n in nombres_disponibles if n not in [j1, j2]]
                 j3 = st.selectbox(
-                    "Jugador 3",
+                    "Jugador 3 (Equipo 2)",
                     opciones_j3,
                     key=f"sim_j3_{i}"
                 )
@@ -1819,7 +1819,7 @@ elif seccion == "🧮 Calculadora":
             with col4:
                 opciones_j4 = [n for n in nombres_disponibles if n not in [j1, j2, j3]]
                 j4 = st.selectbox(
-                    "Jugador 4",
+                    "Jugador 4 (Equipo 2)",
                     opciones_j4,
                     key=f"sim_j4_{i}"
                 )
