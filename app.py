@@ -656,9 +656,9 @@ def _peso_h2h_dinamico(n_partidos, peso_base):
     elif n_partidos == 1:
         return peso_base * 0.35
     elif n_partidos < 2:
-        return peso_base * 0.7
+        return peso_base * 0.8
     else:
-        return peso_base
+        return peso_base * 1.2
  
 def calcular_score(df_ref, eq1, eq2):
     vals = {}
