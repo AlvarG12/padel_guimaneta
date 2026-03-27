@@ -1068,7 +1068,7 @@ elif seccion == "📋 Detalle":
             </div>
             <div style="flex:1; text-align:center;">
                 <div style="color:#8b949e; font-size:0.8rem;">📅 Fecha</div>
-                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{fecha}</div>
+                <div style="color:#ffffff; font-size:1.2rem; font-weight:700;">{fecha_formateada}</div>
             </div>
             <div style="flex:1; text-align:center;">
                 <div style="color:#8b949e; font-size:0.8rem;">🎾 Partidos</div>
