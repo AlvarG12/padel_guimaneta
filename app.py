@@ -2133,7 +2133,7 @@ elif seccion == "🧮 Calculadora":
                 # Bloque 3: El Muro (Estático)
                 txt_muro = f"{vics_estatico} partidos" if vics_estatico < 50 else "Inalcanzable hoy"
                 st.markdown(f"""
-                <div style="background:#1c2128; border:1px solid #30363d; border-radius:10px; padding:15px;">
+                <div style="background:#1c2128; border:1px solid #808080; border-radius:10px; padding:15px;">
                     <h4 style="color:#8b949e; margin:0;">📉 Escenario: El Muro</h4>
                     <p style="margin:10px 0; font-size:1.1rem;">Necesitas <b>{txt_muro}</b> seguidos.</p>
                     <p style="color:#8b949e; font-size:0.85rem;">Si {jugador_delante} no vuelve a jugar nunca más y mantiene su % intacto.</p>
