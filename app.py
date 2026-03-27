@@ -1755,7 +1755,63 @@ elif seccion == "💻 Predictor":
         plt.close()
  
         st.divider()
+
+        # ── Desglose por factor ──
+        st.markdown("#### 🔍 Desglose por factor")
  
+        _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
+
+        for feature, peso in PESOS.items():
+
+            # 🔥 SI NO EXISTE → SKIP
+            if feature not in desglose:
+                continue
+
+            v1, v2 = desglose[feature]
+
+            ventaja1 = v1 >= v2
+            color1 = "#1f6feb" if ventaja1 else "#8b949e"
+            color2 = "#da3633" if not ventaja1 else "#8b949e"
+            icono = "🔵" if ventaja1 else "🔴"
+
+            bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
+            bar_eq2 = 100 - bar_eq1
+
+            # 🔥 INFO EXTRA H2H EXACTO
+            extra_h2h = ""
+            if feature == "H2H pareja exacta":
+                if n_exactos > 0:
+                    wins_eq1 = int(round(v1 * n_exactos))
+                    wins_eq2 = n_exactos - wins_eq1
+
+                    extra_h2h = (
+                        f"<div style='display:flex;justify-content:space-between;font-size:0.85rem;margin-top:6px;'>"
+                        f"<span style='color:#1f6feb;font-weight:600;'>{nombre_eq1}: {wins_eq1} victorias</span>"
+                        f"<span style='color:#da3633;font-weight:600;'>{nombre_eq2}: {wins_eq2} victorias</span>"
+                        f"</div>"
+                        f"<div style='color:#8b949e;font-size:0.75rem;margin-top:2px;'>📊 {n_exactos} partidos exactos</div>"
+                    )
+
+            st.markdown(f"""
+            <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
+                        padding:12px 16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="color:#e6edf3;font-weight:600;">{icono} {feature}</span>
+                </div>
+                <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px;">
+                    <div style="width:{bar_eq1:.1f}%;background:#1f6feb;"></div>
+                    <div style="width:{bar_eq2:.1f}%;background:#da3633;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
+                    <span style="color:{color1};font-weight:600;">{nombre_eq1}: {v1*100:.1f}%</span>
+                    <span style="color:{color2};font-weight:600;">{nombre_eq2}: {v2*100:.1f}%</span>
+                </div>
+                {extra_h2h}
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.divider()
+
         # ── 🔥 HISTORIAL DE ENFRENTAMIENTOS PREVIOS (ORDEN POR FECHA REAL) ──
         _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
         
@@ -1811,61 +1867,6 @@ elif seccion == "💻 Predictor":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-            st.divider()
-
-        # ── Desglose por factor ──
-        st.markdown("#### 🔍 Desglose por factor")
- 
-        _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
-
-        for feature, peso in PESOS.items():
-
-            # 🔥 SI NO EXISTE → SKIP
-            if feature not in desglose:
-                continue
-
-            v1, v2 = desglose[feature]
-
-            ventaja1 = v1 >= v2
-            color1 = "#1f6feb" if ventaja1 else "#8b949e"
-            color2 = "#da3633" if not ventaja1 else "#8b949e"
-            icono = "🔵" if ventaja1 else "🔴"
-
-            bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
-            bar_eq2 = 100 - bar_eq1
-
-            # 🔥 INFO EXTRA H2H EXACTO
-            extra_h2h = ""
-            if feature == "H2H pareja exacta":
-                if n_exactos > 0:
-                    wins_eq1 = int(round(v1 * n_exactos))
-                    wins_eq2 = n_exactos - wins_eq1
-
-                    extra_h2h = (
-                        f"<div style='display:flex;justify-content:space-between;font-size:0.85rem;margin-top:6px;'>"
-                        f"<span style='color:#1f6feb;font-weight:600;'>{nombre_eq1}: {wins_eq1} victorias</span>"
-                        f"<span style='color:#da3633;font-weight:600;'>{nombre_eq2}: {wins_eq2} victorias</span>"
-                        f"</div>"
-                        f"<div style='color:#8b949e;font-size:0.75rem;margin-top:2px;'>📊 {n_exactos} partidos exactos</div>"
-                    )
-
-            st.markdown(f"""
-            <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
-                        padding:12px 16px;margin-bottom:8px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <span style="color:#e6edf3;font-weight:600;">{icono} {feature}</span>
-                </div>
-                <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px;">
-                    <div style="width:{bar_eq1:.1f}%;background:#1f6feb;"></div>
-                    <div style="width:{bar_eq2:.1f}%;background:#da3633;"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
-                    <span style="color:{color1};font-weight:600;">{nombre_eq1}: {v1*100:.1f}%</span>
-                    <span style="color:{color2};font-weight:600;">{nombre_eq2}: {v2*100:.1f}%</span>
-                </div>
-                {extra_h2h}
-            </div>
-            """, unsafe_allow_html=True)
  
         # ── Accuracy del modelo ──
         #acc_color = "#238636" if acc >= 0.60 else "#d29922" if acc >= 0.50 else "#da3633"
