@@ -2115,7 +2115,7 @@ elif seccion == "🧮 Calculadora":
                         {jugador_atras} necesita ganar <span style="color:#238636;font-weight:700;font-size:1.2rem;">{victorias_mejor}</span> partido(s) más
                     </div>
                     <div style="color:#8b949e;font-size:0.85rem;margin-top:6px;">
-                        (si {jugador_delante} no gana ninguno más)
+                        (si {jugador_delante} no juega ninguno más)
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
