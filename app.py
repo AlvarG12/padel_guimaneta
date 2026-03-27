@@ -1833,7 +1833,7 @@ elif seccion == "💻 Predictor":
 elif seccion == "🧮 Calculadora":
     st.markdown("## 🧮 Calculadora")
     
-    tab1, tab2 = st.tabs(["📅 Simular Jornada", "🎯 ¿Qué necesito?"])
+    tab1, tab2, tab3 = st.tabs(["📅 Simular Jornada", "🎯 Adelantar Jugador", "👑 Objetivo Ranking"])
     
     # ═══════════════════════════════════════════════════════════════════════
     # TAB 1: SIMULAR JORNADA
@@ -2207,3 +2207,77 @@ elif seccion == "🧮 Calculadora":
                     <p style="color:#8b949e; font-size:0.85rem;">Si {jugador_delante} no vuelve a jugar nunca más, mantiene su % intacto.</p>
                 </div>
                 """, unsafe_allow_html=True)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # TAB 3: OBJETIVO RANKING
+    # ═══════════════════════════════════════════════════════════════════════
+    with tab3:
+        st.markdown("### ¿Qué necesitas para alcanzar una posición específica?")
+        
+        nombres_lista = sorted(clasificacion["nombre"].tolist())
+        
+        col_j, col_p = st.columns(2)
+        with col_j:
+            soy_yo = st.selectbox("Selecciona tu nombre", nombres_lista, key="obj_yo")
+        with col_p:
+            pos_deseada = st.slider("Posición objetivo", 1, len(clasificacion), 1, key="obj_pos")
+        
+        if st.button("🏆 Calcular Camino al Éxito", use_container_width=True, type="primary"):
+            # 1. Identificar al rival que ocupa esa posición (o el inmediatamente superior)
+            # Nota: clasificacion ya viene ordenada por porcentaje_victorias
+            rival_objetivo = clasificacion.iloc[pos_deseada - 1]
+            nombre_rival = rival_objetivo["nombre"]
+            
+            # 2. Obtener Stats
+            stats_yo = clasificacion[clasificacion["nombre"] == soy_yo].iloc[0]
+            pos_actual = clasificacion.index[clasificacion["nombre"] == soy_yo][0]
+            
+            if pos_actual <= pos_deseada:
+                st.balloons()
+                st.success(f"⭐ ¡Ya estás en el objetivo! Actualmente eres el **#{pos_actual}**. ¡A mantenerlo!")
+            else:
+                st.info(f"Para ser **#{pos_deseada}**, tienes que superar el **{rival_objetivo['porcentaje_victorias']}%** de **{nombre_rival}**.")
+                
+                # --- CÁLCULOS (Reutilizando tu lógica de la Tab 2) ---
+                v_a, pj_a = int(stats_yo["victorias"]), int(stats_yo["partidos_jugados"])
+                v_d, pj_d = int(rival_objetivo["victorias"]), int(rival_objetivo["partidos_jugados"])
+                pct_d = rival_objetivo["porcentaje_victorias"]
+
+                # A. Escenario El Muro (Rival estático)
+                vics_estatico = 0
+                for x in range(1, 150):
+                    if ((v_a + x) / (pj_a + x)) * 100 > pct_d:
+                        vics_estatico = x
+                        break
+                
+                # B. Escenario Cruce Directo (Jugando contra el de esa posición)
+                vics_cruce = 0
+                for x in range(1, 100):
+                    if ((v_a + x) / (pj_a + x)) > (v_d / (pj_d + x)):
+                        vics_cruce = x
+                        break
+
+                # --- RENDERIZADO VISUAL ---
+                col_res1, col_res2 = st.columns(2)
+                
+                with col_res1:
+                    txt_m = f"{vics_estatico} partidos" if vics_estatico > 0 else "N/A"
+                    st.markdown(f"""
+                    <div style="background:#161b22; border:1px solid #30363d; border-radius:10px; padding:15px; text-align:center;">
+                        <div style="color:#8b949e; font-size:0.8rem; text-transform:uppercase;">Solo ante el peligro</div>
+                        <div style="color:#ffffff; font-size:1.8rem; font-weight:800; margin:10px 0;">{txt_m}</div>
+                        <div style="color:#8b949e; font-size:0.85rem;">Ganados consecutivamente si <b>{nombre_rival}</b> no juega más.</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with col_res2:
+                    txt_c = f"{vics_cruce} partidos" if vics_cruce > 0 else "N/A"
+                    st.markdown(f"""
+                    <div style="background:#161b22; border:1px solid #2188ff; border-radius:10px; padding:15px; text-align:center;">
+                        <div style="color:#2188ff; font-size:0.8rem; text-transform:uppercase;">Duelo Directo</div>
+                        <div style="color:#ffffff; font-size:1.8rem; font-weight:800; margin:10px 0;">{txt_c}</div>
+                        <div style="color:#8b949e; font-size:0.85rem;">Ganados cara a cara contra <b>{nombre_rival}</b> para quitarle el puesto.</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.warning(f"💡 **Consejo:** Cuanto más arriba quieras llegar, más partidos seguidos necesitarás. ¡Paciencia, {soy_yo}!")
