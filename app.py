@@ -1778,7 +1778,7 @@ elif seccion == "🧮 Simulador":
             "¿Cuántos partidos quieres simular?",
             min_value=1,
             max_value=10,
-            value=3,
+            value=1,
             step=1
         )
         
