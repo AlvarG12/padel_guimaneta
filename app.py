@@ -663,6 +663,7 @@ def _peso_h2h_dinamico(n_partidos, peso_base):
 def calcular_score(df_ref, eq1, eq2):
     vals = {}
 
+    # 1. Obtener datos de H2H Pareja Exacta
     exacto_eq1, n = _h2h_pareja_exacta(df_ref, eq1, eq2)
     exacto_eq2, _ = _h2h_pareja_exacta(df_ref, eq2, eq1)
 
@@ -674,7 +675,7 @@ def calcular_score(df_ref, eq1, eq2):
     if peso_h2h_real > 0:
         vals["H2H pareja exacta"] = (exacto_eq1, exacto_eq2)
 
-    # RESTO IGUAL
+    # 2. Recopilar resto de métricas
     vals["H2H individual"] = (
         _h2h_individual(df_ref, eq1, eq2),
         _h2h_individual(df_ref, eq2, eq1)
@@ -704,27 +705,52 @@ def calcular_score(df_ref, eq1, eq2):
     score_eq1, score_eq2 = 0.0, 0.0
 
     for feature, (v1, v2) in vals.items():
-
-        # 👇 aquí está la magia
+        # Definir el peso de la característica
         if feature == "H2H pareja exacta":
             peso = peso_h2h_real
+        elif feature == "Winrate histórico" and n >= 3:
+            # 📉 Si ya han jugado 3+ partidos juntos, el pasado individual importa menos
+            peso = PESOS.get(feature, 0.0) * 0.3
         else:
             peso = PESOS.get(feature, 0.0)
 
+        # Proporción de la métrica
         total = v1 + v2
         p1, p2 = (v1 / total, v2 / total) if total > 0 else (0.5, 0.5)
+
+        # 🛡️ Lógica Anti-Dilución (Penalización por 0% en pareja)
+        # Si una pareja tiene 0 victorias en H2H o Rendimiento tras varios partidos, se castiga el score
+        if feature in ["Rendimiento como pareja", "H2H pareja exacta"]:
+            # Si el equipo 1 tiene 0 victorias pero el equipo 2 sí tiene
+            if v1 == 0 and v2 > 0:
+                p1 = p1 * 0.15  # El 0% ahora es una losa pesada
+                p2 = 1 - p1
+            elif v2 == 0 and v1 > 0:
+                p2 = p2 * 0.15
+                p1 = 1 - p2
 
         score_eq1 += peso * p1
         score_eq2 += peso * p2
 
     total_score = score_eq1 + score_eq2
 
-    # Protección extra (por si todos los pesos son 0)
+    # Protección extra
     if total_score == 0:
         return 0.5, 0.5, vals
 
     score_eq1 /= total_score
     score_eq2 /= total_score
+    
+    # 🏁 Hachazo final: Suelo de seguridad
+    # Si una pareja ha perdido los 3 o más partidos jugados contra la otra, 
+    # no permitimos que el azar de otras stats les de mucha esperanza.
+    if n >= 3:
+        if exacto_eq1 == 0 and exacto_eq2 > 0:
+            score_eq1 = min(score_eq1, 0.20)
+            score_eq2 = 1 - score_eq1
+        elif exacto_eq2 == 0 and exacto_eq1 > 0:
+            score_eq2 = min(score_eq2, 0.20)
+            score_eq1 = 1 - score_eq2
 
     return score_eq1, score_eq2, vals
  
