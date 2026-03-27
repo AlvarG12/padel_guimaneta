@@ -836,7 +836,8 @@ with st.sidebar:
             "🤝 Parejas",
             "🔥 Rachas",
             "📊 Gráficas",
-            "💻 Predictor"
+            "💻 Predictor",
+            "🧮 Simulador"
         ],
         label_visibility="collapsed"
     )
@@ -1755,3 +1756,363 @@ elif seccion == "💻 Predictor":
                 <span style="color:#e6edf3;">{feature}</span>
             </div>
             """, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SECCIÓN: SIMULADOR (AÑADIR AL CÓDIGO PRINCIPAL DESPUÉS DE LA SECCIÓN PREDICTOR)
+# ═══════════════════════════════════════════════════════════════════════════
+ 
+elif seccion == "🧮 Simulador":
+    st.markdown("## 🧮 Simulador de Clasificación")
+    
+    tab1, tab2 = st.tabs(["📅 Simular Jornada", "🎯 ¿Qué necesito?"])
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # TAB 1: SIMULAR JORNADA
+    # ═══════════════════════════════════════════════════════════════════════
+    with tab1:
+        st.markdown("### Añade partidos hipotéticos y ve cómo cambia la clasificación")
+        
+        # Número de partidos a simular
+        num_partidos = st.number_input(
+            "¿Cuántos partidos quieres simular?",
+            min_value=1,
+            max_value=10,
+            value=3,
+            step=1
+        )
+        
+        nombres_disponibles = sorted(df["nombre"].unique())
+        partidos_simulados = []
+        
+        st.divider()
+        
+        # Generar selectores por cada partido
+        for i in range(num_partidos):
+            st.markdown(f"#### 🎾 Partido {i+1}")
+            
+            col1, col2, col3, col4, col5, col6 = st.columns([3, 3, 3, 3, 2, 2])
+            
+            with col1:
+                j1 = st.selectbox(
+                    "Jugador 1",
+                    nombres_disponibles,
+                    key=f"sim_j1_{i}"
+                )
+            
+            with col2:
+                opciones_j2 = [n for n in nombres_disponibles if n != j1]
+                j2 = st.selectbox(
+                    "Jugador 2",
+                    opciones_j2,
+                    key=f"sim_j2_{i}"
+                )
+            
+            with col3:
+                opciones_j3 = [n for n in nombres_disponibles if n not in [j1, j2]]
+                j3 = st.selectbox(
+                    "Jugador 3",
+                    opciones_j3,
+                    key=f"sim_j3_{i}"
+                )
+            
+            with col4:
+                opciones_j4 = [n for n in nombres_disponibles if n not in [j1, j2, j3]]
+                j4 = st.selectbox(
+                    "Jugador 4",
+                    opciones_j4,
+                    key=f"sim_j4_{i}"
+                )
+            
+            with col5:
+                ganador = st.selectbox(
+                    "Ganador",
+                    ["Equipo 1", "Equipo 2"],
+                    key=f"sim_ganador_{i}"
+                )
+            
+            with col6:
+                marcador = st.selectbox(
+                    "Marcador",
+                    ["2-0", "2-1"],
+                    key=f"sim_marcador_{i}"
+                )
+            
+            # Guardar partido
+            eq1 = [j1, j2]
+            eq2 = [j3, j4]
+            
+            if marcador == "2-0":
+                juegos_ganador = 2
+                juegos_perdedor = 0
+            else:
+                juegos_ganador = 2
+                juegos_perdedor = 1
+            
+            if ganador == "Equipo 1":
+                partidos_simulados.append({
+                    "eq1": eq1,
+                    "eq2": eq2,
+                    "juegos_eq1": juegos_ganador,
+                    "juegos_eq2": juegos_perdedor,
+                    "ganador": 1
+                })
+            else:
+                partidos_simulados.append({
+                    "eq1": eq1,
+                    "eq2": eq2,
+                    "juegos_eq1": juegos_perdedor,
+                    "juegos_eq2": juegos_ganador,
+                    "ganador": 2
+                })
+            
+            st.markdown("---")
+        
+        # Botón para calcular
+        if st.button("🔮 Calcular clasificación simulada", use_container_width=True, type="primary"):
+            
+            # Crear DataFrame simulado
+            df_simulado = df.copy()
+            
+            # Añadir partidos simulados
+            id_partido_base = df_simulado["id_partido"].astype(str).str.split("_").str[0].astype(int).max() + 1000
+            jornada_sim = df_simulado["id_jornada"].max() + 1
+            
+            filas_nuevas = []
+            
+            for idx, partido in enumerate(partidos_simulados):
+                pid = f"{id_partido_base + idx}_SIM"
+                
+                # Equipo 1
+                for jugador in partido["eq1"]:
+                    filas_nuevas.append({
+                        "id_partido": pid,
+                        "id_jornada": jornada_sim,
+                        "nombre": jugador,
+                        "equipo": 1,
+                        "juegos_equipo1": partido["juegos_eq1"],
+                        "juegos_equipo2": partido["juegos_eq2"],
+                        "equipo_ganador": partido["ganador"],
+                        "victoria": 1 if partido["ganador"] == 1 else 0,
+                        "juegos_ganados": partido["juegos_eq1"],
+                        "juegos_perdidos": partido["juegos_eq2"],
+                        "temporada": "SIMULADO"
+                    })
+                
+                # Equipo 2
+                for jugador in partido["eq2"]:
+                    filas_nuevas.append({
+                        "id_partido": pid,
+                        "id_jornada": jornada_sim,
+                        "nombre": jugador,
+                        "equipo": 2,
+                        "juegos_equipo1": partido["juegos_eq1"],
+                        "juegos_equipo2": partido["juegos_eq2"],
+                        "equipo_ganador": partido["ganador"],
+                        "victoria": 1 if partido["ganador"] == 2 else 0,
+                        "juegos_ganados": partido["juegos_eq2"],
+                        "juegos_perdidos": partido["juegos_eq1"],
+                        "temporada": "SIMULADO"
+                    })
+            
+            df_simulado = pd.concat([df_simulado, pd.DataFrame(filas_nuevas)], ignore_index=True)
+            
+            # Calcular clasificaciones
+            clasificacion_real = calcular_clasificacion(df)
+            clasificacion_simulada = calcular_clasificacion(df_simulado)
+            
+            # Merge para comparar
+            comparacion = clasificacion_real[["nombre", "victorias", "diferencia_juegos", "porcentaje_victorias"]].merge(
+                clasificacion_simulada[["nombre", "victorias", "diferencia_juegos", "porcentaje_victorias"]],
+                on="nombre",
+                suffixes=("_real", "_sim")
+            )
+            
+            # Posiciones
+            clasificacion_real_sorted = clasificacion_real.reset_index(drop=True)
+            clasificacion_real_sorted["pos_real"] = clasificacion_real_sorted.index + 1
+            
+            clasificacion_simulada_sorted = clasificacion_simulada.reset_index(drop=True)
+            clasificacion_simulada_sorted["pos_sim"] = clasificacion_simulada_sorted.index + 1
+            
+            comparacion = comparacion.merge(
+                clasificacion_real_sorted[["nombre", "pos_real"]],
+                on="nombre"
+            ).merge(
+                clasificacion_simulada_sorted[["nombre", "pos_sim"]],
+                on="nombre"
+            )
+            
+            comparacion["cambio_pos"] = comparacion["pos_real"] - comparacion["pos_sim"]
+            
+            st.divider()
+            st.markdown("### 📊 Resultado de la simulación")
+            
+            # Mostrar tabla comparativa
+            col_a, col_b = st.columns(2)
+            
+            with col_a:
+                st.markdown("#### 🏆 Clasificación REAL")
+                tabla_real = clasificacion_real[["nombre", "victorias", "derrotas", "diferencia_juegos", "porcentaje_victorias"]].copy()
+                tabla_real.columns = ["Jugador", "V", "D", "+/-", "% V"]
+                tabla_real.index = range(1, len(tabla_real) + 1)
+                st.dataframe(
+                    tabla_real.style.background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100),
+                    use_container_width=True
+                )
+            
+            with col_b:
+                st.markdown("#### 🔮 Clasificación SIMULADA")
+                tabla_sim = clasificacion_simulada[["nombre", "victorias", "derrotas", "diferencia_juegos", "porcentaje_victorias"]].copy()
+                tabla_sim.columns = ["Jugador", "V", "D", "+/-", "% V"]
+                tabla_sim.index = range(1, len(tabla_sim) + 1)
+                st.dataframe(
+                    tabla_sim.style.background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100),
+                    use_container_width=True
+                )
+            
+            st.divider()
+            st.markdown("### 📈 Cambios de posición")
+            
+            # Ordenar por mayor cambio
+            comparacion_sorted = comparacion.sort_values("cambio_pos", ascending=False)
+            
+            for _, row in comparacion_sorted.iterrows():
+                cambio = int(row["cambio_pos"])
+                
+                if cambio > 0:
+                    emoji = "📈"
+                    color = "#238636"
+                    texto = f"sube {cambio} posición/es"
+                elif cambio < 0:
+                    emoji = "📉"
+                    color = "#da3633"
+                    texto = f"baja {abs(cambio)} posición/es"
+                else:
+                    emoji = "➡️"
+                    color = "#8b949e"
+                    texto = "mantiene posición"
+                
+                st.markdown(f"""
+                <div style="background:#161b22;border-left:4px solid {color};border-radius:8px;
+                            padding:10px 14px;margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <span style="color:#ffffff;font-weight:600;font-size:1.1rem;">{emoji} {row['nombre']}</span>
+                            <span style="color:#8b949e;margin-left:12px;">{texto}</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="color:#8b949e;font-size:0.9rem;">Pos: </span>
+                            <span style="color:#ffffff;font-weight:700;">#{int(row['pos_real'])} → #{int(row['pos_sim'])}</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # TAB 2: ¿QUÉ NECESITO?
+    # ═══════════════════════════════════════════════════════════════════════
+    with tab2:
+        st.markdown("### Calcula qué necesitas para adelantar a otro jugador")
+        
+        nombres_lista = sorted(clasificacion["nombre"].tolist())
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            jugador_atras = st.selectbox(
+                "¿Qué necesita...",
+                nombres_lista,
+                key="calc_j1"
+            )
+        
+        with col2:
+            opciones_delante = [n for n in nombres_lista if n != jugador_atras]
+            jugador_delante = st.selectbox(
+                "...para adelantar a?",
+                opciones_delante,
+                key="calc_j2"
+            )
+        
+        if st.button("🔍 Calcular", use_container_width=True, type="primary"):
+            
+            # Obtener stats actuales
+            stats_atras = clasificacion[clasificacion["nombre"] == jugador_atras].iloc[0]
+            stats_delante = clasificacion[clasificacion["nombre"] == jugador_delante].iloc[0]
+            
+            pos_atras = clasificacion.index[clasificacion["nombre"] == jugador_atras][0]
+            pos_delante = clasificacion.index[clasificacion["nombre"] == jugador_delante][0]
+            
+            # Verificar si ya está por delante
+            if pos_atras <= pos_delante:
+                st.success(f"🎉 **{jugador_atras}** ya está por delante de **{jugador_delante}** (posición #{pos_atras+1} vs #{pos_delante+1})")
+            else:
+                st.divider()
+                
+                # Diferencias actuales
+                diff_victorias = stats_delante["victorias"] - stats_atras["victorias"]
+                diff_juegos = stats_delante["diferencia_juegos"] - stats_atras["diferencia_juegos"]
+                diff_pct = stats_delante["porcentaje_victorias"] - stats_atras["porcentaje_victorias"]
+                
+                st.markdown(f"""
+                <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
+                            padding:16px;margin-bottom:16px;">
+                    <div style="color:#8b949e;font-size:0.9rem;margin-bottom:8px;">Situación actual</div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+                        <div>
+                            <div style="color:#da3633;font-weight:600;font-size:1.1rem;">{jugador_atras}</div>
+                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_atras+1}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#238636;font-weight:600;font-size:1.1rem;">{jugador_delante}</div>
+                            <div style="color:#8b949e;font-size:0.85rem;">Posición #{pos_delante+1}</div>
+                        </div>
+                    </div>
+                    <div style="color:#ffffff;font-size:0.9rem;">
+                        <div>📊 Diferencia: {int(diff_victorias)} victorias · {int(diff_juegos)} juegos · {diff_pct:.2f}% winrate</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # CÁLCULO: ¿Cuántas victorias necesita?
+                # Escenario 1: El de delante no gana nada más (mejor caso)
+                victorias_necesarias_mejor = int(diff_victorias) + 1
+                
+                # Escenario 2: Ambos juegan igual (caso realista)
+                # Necesita igualar victorias + superar en diferencia de juegos
+                # Asumimos victorias 2-0 para maximizar diferencia
+                victorias_necesarias_realista = max(int(diff_victorias) + 1, int(diff_juegos / 2) + 1)
+                
+                st.markdown("### 📋 Escenarios posibles")
+                
+                # Mejor caso
+                st.markdown(f"""
+                <div style="background:#161b22;border:1px solid #238636;border-radius:10px;
+                            padding:14px;margin-bottom:12px;">
+                    <div style="color:#238636;font-weight:700;font-size:1.1rem;margin-bottom:8px;">
+                        ✅ Mejor caso
+                    </div>
+                    <div style="color:#ffffff;font-size:1rem;">
+                        {jugador_atras} necesita ganar <span style="color:#238636;font-weight:700;font-size:1.2rem;">{victorias_necesarias_mejor}</span> partido(s) más
+                    </div>
+                    <div style="color:#8b949e;font-size:0.85rem;margin-top:6px;">
+                        (asumiendo que {jugador_delante} no gana ninguno más)
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Caso realista
+                st.markdown(f"""
+                <div style="background:#161b22;border:1px solid #d29922;border-radius:10px;
+                            padding:14px;">
+                    <div style="color:#d29922;font-weight:700;font-size:1.1rem;margin-bottom:8px;">
+                        ⚠️ Caso realista
+                    </div>
+                    <div style="color:#ffffff;font-size:1rem;">
+                        Si ambos siguen ganando, {jugador_atras} necesita aproximadamente <span style="color:#d29922;font-weight:700;font-size:1.2rem;">{victorias_necesarias_realista}</span> victorias con marcador 2-0
+                    </div>
+                    <div style="color:#8b949e;font-size:0.85rem;margin-top:6px;">
+                        (para superar tanto en victorias como en diferencia de juegos)
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
