@@ -28,7 +28,7 @@ st.set_page_config(
 # CARGA DE DATOS (Adaptada específicamente a tus archivos)
 # ─────────────────────────────────────────────
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def cargar_datos(base_path="data/"):
     print("🔍 DEBUG: Cargando datos...")
     jugadores = pd.read_csv(os.path.join(base_path, "jugadores.csv"))
@@ -68,7 +68,7 @@ def cargar_datos(base_path="data/"):
 
     return jugadores, partidos, partido_jugadores
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def construir_df(jugadores, partidos, partido_jugadores):
     print("🔍 DEBUG: Construyendo DF CORREGIDO...")
 
