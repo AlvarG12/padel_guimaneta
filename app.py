@@ -2265,7 +2265,7 @@ elif seccion == "🧮 Calculadora":
                 """, unsafe_allow_html=True)
 
                 # Bloque 3: El Muro (Estático)
-                txt_muro = f"{vics_estatico} partidos" if vics_estatico < 50 else "Inalcanzable hoy"
+                txt_muro = f"{vics_estatico} partidos"
                 st.markdown(f"""
                 <div style="background:#1c2128; border:1px solid #808080; border-radius:10px; padding:15px;">
                     <h4 style="color:#8b949e; margin:0;">📉 Escenario: El Muro</h4>
