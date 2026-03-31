@@ -707,7 +707,7 @@ def calcular_score(df_ref, eq1, eq2):
     exacto_eq1, n = _h2h_pareja_exacta(df_ref, eq1, eq2)
     exacto_eq2, _ = _h2h_pareja_exacta(df_ref, eq2, eq1)
 
-    # 🔥 Peso dinámico H2H pareja exacta
+    # Peso dinámico H2H pareja exacta
     peso_base_h2h = PESOS.get("H2H pareja exacta", 0.0)
     peso_h2h_real = _peso_h2h_dinamico(n, peso_base_h2h)
 
@@ -1014,7 +1014,7 @@ if seccion == "🏆 Clasificación":
 
     tabla.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V", "Jornadas"]
 
-    # 🔥 FUNCIONES DE COLOR SUAVE TIPO GRADIENTE
+    # FUNCIONES DE COLOR SUAVE TIPO GRADIENTE
     def color_top(nombre, rank):
         if rank == 1:  # 🥇
             return "background-color: rgba(255, 215, 0, 0.15); color: #FFD700; font-weight: 600;"
@@ -1055,7 +1055,7 @@ if seccion == "🏆 Clasificación":
     colores = plt.cm.tab10.colors
 
     if vista_ranking == "🗓️ Jornada":
-        for nombre in nombres:  # 🔥 usamos el orden global
+        for nombre in nombres:
             datos = ranking_jornada[
                 ranking_jornada["nombre"] == nombre
             ].sort_values("hasta_jornada")
@@ -1066,7 +1066,7 @@ if seccion == "🏆 Clasificación":
                 marker="o",
                 linewidth=2.5,
                 markersize=6,
-                color=mapa_colores[nombre],  # 🔥 color fijo
+                color=mapa_colores[nombre],
                 label=nombre
             )
 
@@ -1075,7 +1075,7 @@ if seccion == "🏆 Clasificación":
         n_jugadores = ranking_jornada["rank"].max()
 
     else:
-        for nombre in nombres:  # 🔥 mismo orden SIEMPRE
+        for nombre in nombres:
             datos = ranking_partido[
                 ranking_partido["nombre"] == nombre
             ].sort_values("hasta_partido")
@@ -1086,7 +1086,7 @@ if seccion == "🏆 Clasificación":
                 marker="o",
                 linewidth=2,
                 markersize=4,
-                color=mapa_colores[nombre],  # 🔥 mismo color SIEMPRE
+                color=mapa_colores[nombre],
                 label=nombre
             )
 
@@ -1146,8 +1146,7 @@ elif seccion == "📋 Detalle":
             # Formato: día, mes abreviado en minúsculas (o como prefieras) y año
             fecha_formateada = fecha_dt.strftime("%d %b %Y").lower() 
         except:
-            fecha_formateada = fecha_raw # Si falla, dejamos la original
-    # ----------------------------------
+            fecha_formateada = fecha_raw
 
     sede = fila_info["sede"] if "sede" in fila_info else "N/A"
     num_partidos = df_jornada_simple["id_partido"].nunique()
@@ -1233,10 +1232,9 @@ elif seccion == "📋 Detalle":
         (df["id_jornada"] == jornada_sel)
     ].copy()
 
-    # 🧪 DEBUG (puedes quitar luego)
     st.write(f"Partidos encontrados: {partidos_jornada['id_partido'].nunique()}")
 
-    # 🔥 ORDENAR PARTIDOS POR NÚMERO REAL
+    # ORDENAR PARTIDOS POR NÚMERO REAL
     partidos_jornada["_num"] = partidos_jornada["id_partido"].astype(str).str.split("_").str[0].astype(int)
     partidos_jornada = partidos_jornada.sort_values("_num")
 
@@ -1299,18 +1297,12 @@ elif seccion == "👤 Perfil Jugador":
     with col_a:
         st.markdown("#### Evolución del ranking")
 
-        # ─────────────────────────────────────
-        # Selector de tipo de ranking
-        # ─────────────────────────────────────
         modo_rank = st.radio(
             "Tipo de ranking",
             ["🗓️ Jornada", "⚡ Partido"],
             horizontal=True
         )
 
-        # ─────────────────────────────────────
-        # Datos según modo
-        # ─────────────────────────────────────
         if modo_rank == "🗓️ Jornada":
             datos_jugador = ranking_jornada[
                 ranking_jornada["nombre"] == nombre_sel
@@ -1329,9 +1321,6 @@ elif seccion == "👤 Perfil Jugador":
             y = datos_jugador["rank"]
             xlabel = "Partido"
 
-        # ─────────────────────────────────────
-        # Figura
-        # ─────────────────────────────────────
         fig, ax = plt.subplots(figsize=(7, 4))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
@@ -1339,7 +1328,8 @@ elif seccion == "👤 Perfil Jugador":
         ax.plot(
             x, y,
             marker="o",
-            linewidth=2.5,
+            linewidth=2,
+            markersize=2,
             color="#238636",
             markersize=7
         )
@@ -1803,7 +1793,7 @@ elif seccion == "📊 Gráficas":
                 label=nombre
             )
 
-        # 🔥 Líneas verticales por jornada (más sutil aquí pero mismo estilo)
+        # Líneas verticales por jornada (más sutil aquí pero mismo estilo)
         jornadas = sorted(ranking_jornada["hasta_jornada"].unique())
 
         for j in jornadas:
@@ -1819,7 +1809,6 @@ elif seccion == "📊 Gráficas":
         ax.set_xlabel("Jornada", color="#8b949e")
         ax.set_ylabel("% Victorias", color="#8b949e")
 
-        # 🔥 margen visual
         ax.set_ylim(-5, 105)
 
         ax.set_xticks(jornadas)
@@ -1885,7 +1874,6 @@ elif seccion == "📊 Gráficas":
                 label=nombre
             )
 
-        # 🔥 Líneas verticales separando jornadas (igual que tu ranking)
         jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
 
         for _, jrow in jornada_cambios.iterrows():
@@ -1908,7 +1896,6 @@ elif seccion == "📊 Gráficas":
         ax.set_xlabel("Nº partido acumulado", color="#8b949e")
         ax.set_ylabel("% Victorias", color="#8b949e")
 
-        # 🔥 margen visual como antes
         ax.set_ylim(-5, 105)
 
         ax.set_xticks(sorted(ranking_partido["hasta_partido"].unique()))
@@ -2041,7 +2028,6 @@ elif seccion == "💻 Predictor":
 
         for feature, peso in PESOS.items():
 
-            # 🔥 SI NO EXISTE → SKIP
             if feature not in desglose:
                 continue
 
@@ -2055,7 +2041,6 @@ elif seccion == "💻 Predictor":
             bar_eq1 = v1 / (v1 + v2) * 100 if (v1 + v2) > 0 else 50
             bar_eq2 = 100 - bar_eq1
 
-            # 🔥 INFO EXTRA H2H EXACTO
             extra_h2h = ""
             if feature == "H2H pareja exacta":
                 if n_exactos > 0:
