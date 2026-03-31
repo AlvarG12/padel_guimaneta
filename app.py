@@ -1058,7 +1058,7 @@ if seccion == "🏆 Clasificación":
         for i, nombre in enumerate(nombres):
             datos = ranking_partido[ranking_partido["nombre"] == nombre].sort_values("hasta_partido")
             ax.plot(datos["hasta_partido"], datos["rank"],
-                    marker="o", linewidth=2, markersize=7,
+                    marker="o", linewidth=2, markersize=4,
                     color=colores[i % len(colores)], label=nombre)
 
         # Líneas verticales separando jornadas
