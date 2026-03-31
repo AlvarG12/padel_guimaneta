@@ -8,11 +8,21 @@ import itertools
 import os
 import unicodedata
 
+# 🔤 Quitar acentos
 def quitar_acentos(texto):
     return ''.join(
         c for c in unicodedata.normalize('NFD', texto)
         if unicodedata.category(c) != 'Mn'
     )
+
+# 🔤 Orden consistente (alfabético ignorando acentos)
+def ordenar_nombres(lista_nombres):
+    return sorted(lista_nombres, key=lambda x: quitar_acentos(x).lower())
+
+# 🎨 Mapa de colores fijo (consistencia entre gráficas)
+def crear_mapa_colores(nombres):
+    colores = plt.cm.tab10.colors
+    return {nombre: colores[i % len(colores)] for i, nombre in enumerate(nombres)}
 
 # ─────────────────────────────────────────────
 # CONFIG
@@ -897,6 +907,8 @@ df_parejas = calcular_parejas(df)
 rachas_activas_df, rachas_max_v_df, rachas_max_d_df = calcular_rachas(df)
 df_rachas_v, df_rachas_d = calcular_rachas_historicas(df)
 ranking_partido = calcular_ranking_por_partido(df)
+nombres = ordenar_nombres(df["nombre"].unique())
+mapa_colores = crear_mapa_colores(nombres)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: CLASIFICACIÓN
@@ -1043,23 +1055,40 @@ if seccion == "🏆 Clasificación":
     colores = plt.cm.tab10.colors
 
     if vista_ranking == "🗓️ Jornada":
-        nombres = ranking_jornada["nombre"].unique()
-        for i, nombre in enumerate(nombres):
-            datos = ranking_jornada[ranking_jornada["nombre"] == nombre].sort_values("hasta_jornada")
-            ax.plot(datos["hasta_jornada"], datos["rank"],
-                    marker="o", linewidth=2.5, markersize=6,
-                    color=colores[i % len(colores)], label=nombre)
+        for nombre in nombres:  # 🔥 usamos el orden global
+            datos = ranking_jornada[
+                ranking_jornada["nombre"] == nombre
+            ].sort_values("hasta_jornada")
+
+            ax.plot(
+                datos["hasta_jornada"],
+                datos["rank"],
+                marker="o",
+                linewidth=2.5,
+                markersize=6,
+                color=mapa_colores[nombre],  # 🔥 color fijo
+                label=nombre
+            )
+
         ax.set_xlabel("Jornada", color="#8b949e")
         ax.set_xticks(sorted(ranking_jornada["hasta_jornada"].unique()))
         n_jugadores = ranking_jornada["rank"].max()
 
-    else:  # Por partido
-        nombres = ranking_partido["nombre"].unique()
-        for i, nombre in enumerate(nombres):
-            datos = ranking_partido[ranking_partido["nombre"] == nombre].sort_values("hasta_partido")
-            ax.plot(datos["hasta_partido"], datos["rank"],
-                    marker="o", linewidth=2, markersize=4,
-                    color=colores[i % len(colores)], label=nombre)
+    else:
+        for nombre in nombres:  # 🔥 mismo orden SIEMPRE
+            datos = ranking_partido[
+                ranking_partido["nombre"] == nombre
+            ].sort_values("hasta_partido")
+
+            ax.plot(
+                datos["hasta_partido"],
+                datos["rank"],
+                marker="o",
+                linewidth=2,
+                markersize=4,
+                color=mapa_colores[nombre],  # 🔥 mismo color SIEMPRE
+                label=nombre
+            )
 
         # Líneas verticales separando jornadas
         jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
