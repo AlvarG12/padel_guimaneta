@@ -1703,6 +1703,7 @@ elif seccion == "📊 Gráficas":
                     marker="o", linewidth=2, color=colores[i % len(colores)], label=nombre)
         ax.set_xlabel("Jornada", color="#8b949e")
         ax.set_ylabel("% Victorias", color="#8b949e")
+        ax.set_ylim(0, 100)
         ax.set_xticks(sorted(ranking_jornada["hasta_jornada"].unique()))
         ax.tick_params(colors="#8b949e")
         ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
