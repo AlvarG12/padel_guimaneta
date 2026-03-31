@@ -2513,7 +2513,7 @@ elif seccion == "🧮 Calculadora":
     with tab3:
         st.markdown("### ¿Qué necesitas para alcanzar una posición específica?")
         
-        nombres_lista = sorted(clasificacion["nombre"].tolist())
+        nombres_lista = nombres
         
         col_j, col_p = st.columns(2)
         with col_j:
