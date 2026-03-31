@@ -1748,8 +1748,9 @@ elif seccion == "📊 Gráficas":
         ax.set_facecolor("#161b22")
 
         colores = plt.cm.tab10.colors
+        nombres = ranking_partido["nombre"].unique()
 
-        for i, nombre in enumerate(sorted(ranking_partido["nombre"].unique())):
+        for i, nombre in enumerate(nombres):
             datos = ranking_partido[ranking_partido["nombre"] == nombre].sort_values("hasta_partido")
 
             ax.plot(
@@ -1757,21 +1758,49 @@ elif seccion == "📊 Gráficas":
                 datos["porcentaje_victorias"],
                 marker="o",
                 linewidth=2,
+                markersize=4,
                 color=colores[i % len(colores)],
                 label=nombre
             )
 
-        ax.set_xlabel("Partido", color="#8b949e")
+        # 🔥 Líneas verticales separando jornadas (igual que tu ranking)
+        jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
+
+        for _, jrow in jornada_cambios.iterrows():
+            ax.axvline(
+                x=jrow["hasta_partido"] - 0.5,
+                color="#30363d",
+                linewidth=1.6,
+                linestyle="--"
+            )
+            ax.text(
+                jrow["hasta_partido"] - 0.5,
+                -2,  # 👈 abajo del todo
+                f"J{int(jrow['id_jornada'])}",
+                color="#8b949e",
+                fontsize=7,
+                ha="center"
+            )
+
+        # Ejes
+        ax.set_xlabel("Nº partido acumulado", color="#8b949e")
         ax.set_ylabel("% Victorias", color="#8b949e")
 
-        # 🔥 importante: margen visual
+        # 🔥 margen visual como antes
         ax.set_ylim(-5, 105)
 
-        ax.tick_params(colors="#8b949e")
+        ax.set_xticks(sorted(ranking_partido["hasta_partido"].unique()))
+        ax.tick_params(axis='x', labelsize=7, colors="#8b949e")
+        ax.tick_params(axis='y', colors="#8b949e")
+
         ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
 
-        ax.legend(facecolor="#161b22", edgecolor="#30363d",
-                labelcolor="#e6edf3", fontsize=9)
+        ax.legend(
+            facecolor="#161b22",
+            edgecolor="#30363d",
+            labelcolor="#e6edf3",
+            fontsize=9
+        )
 
         for spine in ax.spines.values():
             spine.set_edgecolor("#30363d")
