@@ -2377,12 +2377,12 @@ elif seccion == "🧮 Calculadora":
                 """, unsafe_allow_html=True)
     
     # ═══════════════════════════════════════════════════════════════════════
-    # TAB 2: ¿QUÉ NECESITO?
+    # TAB 2: ADELANTAR JUGADOR
     # ═══════════════════════════════════════════════════════════════════════
     with tab2:
         st.markdown("### Calcula qué necesitas para adelantar a otro jugador")
         
-        nombres_lista = sorted(clasificacion["nombre"].tolist())
+        nombres_lista = nombres
         
         col1, col2 = st.columns(2)
         
