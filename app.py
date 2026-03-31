@@ -795,42 +795,42 @@ def calcular_score(df_ref, eq1, eq2):
     return score_eq1, score_eq2, vals
  
  
-@st.cache_data
-def validacion_historica(df_hist):
-    """
-    Aplica el modelo a cada partido histórico usando solo datos anteriores.
-    Devuelve (accuracy, n_partidos_validados).
-    """
-    partidos_ord = df_hist.drop_duplicates("id_partido").copy()
-    partidos_ord["_n"] = partidos_ord["id_partido"].astype(str).str.split("_").str[0].astype(int)
-    partidos_ord = partidos_ord.sort_values(["id_jornada", "_n"])
+# @st.cache_data
+# def validacion_historica(df_hist):
+#     """
+#     Aplica el modelo a cada partido histórico usando solo datos anteriores.
+#     Devuelve (accuracy, n_partidos_validados).
+#     """
+#     partidos_ord = df_hist.drop_duplicates("id_partido").copy()
+#     partidos_ord["_n"] = partidos_ord["id_partido"].astype(str).str.split("_").str[0].astype(int)
+#     partidos_ord = partidos_ord.sort_values(["id_jornada", "_n"])
  
-    correctos, total, ids_vistos = 0, 0, []
+#     correctos, total, ids_vistos = 0, 0, []
  
-    for _, row in partidos_ord.iterrows():
-        pid = row["id_partido"]
-        jugadores_p = df_hist[df_hist["id_partido"] == pid]
-        eq1 = jugadores_p[jugadores_p["equipo"] == 1]["nombre"].tolist()
-        eq2 = jugadores_p[jugadores_p["equipo"] == 2]["nombre"].tolist()
+#     for _, row in partidos_ord.iterrows():
+#         pid = row["id_partido"]
+#         jugadores_p = df_hist[df_hist["id_partido"] == pid]
+#         eq1 = jugadores_p[jugadores_p["equipo"] == 1]["nombre"].tolist()
+#         eq2 = jugadores_p[jugadores_p["equipo"] == 2]["nombre"].tolist()
  
-        if len(eq1) != 2 or len(eq2) != 2:
-            ids_vistos.append(pid)
-            continue
+#         if len(eq1) != 2 or len(eq2) != 2:
+#             ids_vistos.append(pid)
+#             continue
  
-        df_antes = df_hist[df_hist["id_partido"].isin(ids_vistos)]
+#         df_antes = df_hist[df_hist["id_partido"].isin(ids_vistos)]
  
-        if len(df_antes) < 8:
-            ids_vistos.append(pid)
-            continue
+#         if len(df_antes) < 8:
+#             ids_vistos.append(pid)
+#             continue
  
-        s1, s2, _ = calcular_score(df_antes, eq1, eq2)
-        prediccion = 1 if s1 >= s2 else 2
-        if prediccion == row["equipo_ganador"]:
-            correctos += 1
-        total += 1
-        ids_vistos.append(pid)
+#         s1, s2, _ = calcular_score(df_antes, eq1, eq2)
+#         prediccion = 1 if s1 >= s2 else 2
+#         if prediccion == row["equipo_ganador"]:
+#             correctos += 1
+#         total += 1
+#         ids_vistos.append(pid)
  
-    return (correctos / total if total > 0 else 0.0), total
+#     return (correctos / total if total > 0 else 0.0), total
 
 # ─────────────────────────────────────────────
 # SIDEBAR (VERSIÓN OPTIMIZADA)
@@ -1895,38 +1895,59 @@ elif seccion == "💻 Predictor":
  
     df_hist = df_completo.copy()
  
-    with st.spinner("⚙️ Validando modelo con datos históricos..."):
-        acc, n_validados = validacion_historica(df_hist)
+    # with st.spinner("⚙️ Validando modelo con datos históricos..."):
+    #     acc, n_validados = validacion_historica(df_hist)
  
-    nombres_todos = sorted(df_hist["nombre"].unique())
+    # nombres_todos = sorted(df_hist["nombre"].unique())
  
     st.divider()
- 
+
     col_eq1, col_vs, col_eq2 = st.columns([5, 1, 5])
- 
+
     with col_eq1:
         st.markdown("#### 🔵 Equipo 1")
-        j1a = st.selectbox("Jugador A", nombres_todos, key="j1a")
-        j1b = st.selectbox("Jugador B", [j for j in nombres_todos if j != j1a], key="j1b")
- 
+
+        j1a = st.selectbox(
+            "Jugador A",
+            nombres,
+            key="j1a"
+        )
+
+        j1b = st.selectbox(
+            "Jugador B",
+            [j for j in nombres if j != j1a],
+            key="j1b"
+        )
+
     with col_vs:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.markdown("### VS")
- 
+
     with col_eq2:
         st.markdown("#### 🔴 Equipo 2")
-        disp2 = [j for j in nombres_todos if j not in [j1a, j1b]]
-        j2a = st.selectbox("Jugador C", disp2, key="j2a")
-        j2b = st.selectbox("Jugador D", [j for j in disp2 if j != j2a], key="j2b")
- 
+
+        disp2 = [j for j in nombres if j not in [j1a, j1b]]
+
+        j2a = st.selectbox(
+            "Jugador C",
+            disp2,
+            key="j2a"
+        )
+
+        j2b = st.selectbox(
+            "Jugador D",
+            [j for j in disp2 if j != j2a],
+            key="j2b"
+        )
+
     eq1 = [j1a, j1b]
     eq2 = [j2a, j2b]
- 
+
     st.divider()
  
     if st.button("🎯 Calcular predicción", use_container_width=True, type="primary"):
  
-        prob_eq1, prob_eq2, desglose = calcular_score(df_hist, eq1, eq2)
+        prob_eq1, prob_eq2, desglose = calcular_score(df_completo, eq1, eq2)
  
         pct1 = round(prob_eq1 * 100, 1)
         pct2 = round(prob_eq2 * 100, 1)
@@ -1971,7 +1992,7 @@ elif seccion == "💻 Predictor":
         # ── Desglose por factor ──
         st.markdown("#### 🔍 Desglose por factor")
  
-        _, n_exactos = _h2h_pareja_exacta(df_hist, eq1, eq2)
+        _, n_exactos = _h2h_pareja_exacta(df_completo, eq1, eq2)
 
         for feature, peso in PESOS.items():
 
