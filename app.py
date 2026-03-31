@@ -1280,7 +1280,7 @@ elif seccion == "👤 Perfil Jugador":
     st.markdown("## 👤 Perfil de Jugador")
     nombre_sel = st.selectbox(
         "Selecciona jugador",
-        sorted(clasificacion["nombre"].tolist(), key=lambda x: quitar_acentos(x).lower())
+        nombres
     )
 
     fila = clasificacion[clasificacion["nombre"] == nombre_sel].iloc[0]
