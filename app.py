@@ -1064,7 +1064,7 @@ if seccion == "🏆 Clasificación":
         # Líneas verticales separando jornadas
         jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
         for _, jrow in jornada_cambios.iterrows():
-            ax.axvline(x=jrow["hasta_partido"] - 0.5, color="#30363d", linewidth=0.8, linestyle="--")
+            ax.axvline(x=jrow["hasta_partido"] - 0.5, color="#30363d", linewidth=1.6, linestyle="--")
             ax.text(jrow["hasta_partido"] - 0.5, 0.3, f"J{int(jrow['id_jornada'])}",
                     color="#8b949e", fontsize=7, ha="center")
 
