@@ -1660,9 +1660,14 @@ elif seccion == "🔥 Rachas":
 elif seccion == "📊 Gráficas":
     st.markdown("## 📊 Gráficas")
 
-    tab1, tab2, tab3 = st.tabs(["📈 % Victorias por jornada", "📊 V/D por jugador", "🎯 Diferencia juegos"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📈 % Victorias por jornada",
+        "⚡ % Victorias por partido",
+        "📊 V/D por jugador",
+        "🎯 Diferencia juegos"
+    ])
 
-    with tab2:
+    with tab3:
         plot_data = clasificacion.sort_values("partidos_jugados", ascending=False)
         fig, ax = plt.subplots(figsize=(12, 6))
         fig.patch.set_facecolor("#0d1117")
@@ -1714,7 +1719,7 @@ elif seccion == "📊 Gráficas":
         st.pyplot(fig)
         plt.close()
 
-    with tab3:
+    with tab4:
         top_diff = clasificacion.sort_values("diferencia_juegos", ascending=False)
         fig, ax = plt.subplots(figsize=(10, 5))
         fig.patch.set_facecolor("#0d1117")
@@ -1734,6 +1739,46 @@ elif seccion == "📊 Gráficas":
             spine.set_edgecolor("#30363d")
         plt.tight_layout()
         st.pyplot(fig)
+
+    with tab2:
+        ranking_partido = calcular_ranking_por_partido(df)
+
+        fig, ax = plt.subplots(figsize=(14, 6))
+        fig.patch.set_facecolor("#0d1117")
+        ax.set_facecolor("#161b22")
+
+        colores = plt.cm.tab10.colors
+
+        for i, nombre in enumerate(sorted(ranking_partido["nombre"].unique())):
+            datos = ranking_partido[ranking_partido["nombre"] == nombre].sort_values("hasta_partido")
+
+            ax.plot(
+                datos["hasta_partido"],
+                datos["porcentaje_victorias"],
+                marker="o",
+                linewidth=2,
+                color=colores[i % len(colores)],
+                label=nombre
+            )
+
+        ax.set_xlabel("Partido", color="#8b949e")
+        ax.set_ylabel("% Victorias", color="#8b949e")
+
+        # 🔥 importante: margen visual
+        ax.set_ylim(-5, 105)
+
+        ax.tick_params(colors="#8b949e")
+        ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
+
+        ax.legend(facecolor="#161b22", edgecolor="#30363d",
+                labelcolor="#e6edf3", fontsize=9)
+
+        for spine in ax.spines.values():
+            spine.set_edgecolor("#30363d")
+
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
