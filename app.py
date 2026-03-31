@@ -1298,23 +1298,68 @@ elif seccion == "👤 Perfil Jugador":
 
     with col_a:
         st.markdown("#### Evolución del ranking")
-        datos_jugador = ranking_jornada[ranking_jornada["nombre"] == nombre_sel].sort_values("hasta_jornada")
+
+        # ─────────────────────────────────────
+        # Selector de tipo de ranking
+        # ─────────────────────────────────────
+        modo_rank = st.radio(
+            "Tipo de ranking",
+            ["🗓️ Jornada", "⚡ Partido"],
+            horizontal=True
+        )
+
+        # ─────────────────────────────────────
+        # Datos según modo
+        # ─────────────────────────────────────
+        if modo_rank == "🗓️ Jornada":
+            datos_jugador = ranking_jornada[
+                ranking_jornada["nombre"] == nombre_sel
+            ].sort_values("hasta_jornada")
+
+            x = datos_jugador["hasta_jornada"]
+            y = datos_jugador["rank"]
+            xlabel = "Jornada"
+
+        else:
+            datos_jugador = ranking_partido[
+                ranking_partido["nombre"] == nombre_sel
+            ].sort_values("hasta_partido")
+
+            x = datos_jugador["hasta_partido"]
+            y = datos_jugador["rank"]
+            xlabel = "Partido"
+
+        # ─────────────────────────────────────
+        # Figura
+        # ─────────────────────────────────────
         fig, ax = plt.subplots(figsize=(7, 4))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
-        ax.plot(datos_jugador["hasta_jornada"], datos_jugador["rank"],
-                marker="o", linewidth=2.5, color="#238636", markersize=7)
-        ax.fill_between(datos_jugador["hasta_jornada"], datos_jugador["rank"],
-                        alpha=0.15, color="#238636")
+
+        ax.plot(
+            x, y,
+            marker="o",
+            linewidth=2.5,
+            color="#238636",
+            markersize=7
+        )
+
+        ax.fill_between(x, y, alpha=0.15, color="#238636")
+
         ax.invert_yaxis()
-        ax.set_xlabel("Jornada", color="#8b949e")
+
+        ax.set_xlabel(xlabel, color="#8b949e")
         ax.set_ylabel("Posición", color="#8b949e")
-        ax.set_xticks(sorted(datos_jugador["hasta_jornada"].unique()))
+
+        ax.set_xticks(sorted(x.unique()))
         ax.set_yticks(range(1, ranking_jornada["rank"].max() + 1))
+
         ax.tick_params(colors="#8b949e")
         ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
+
         for spine in ax.spines.values():
             spine.set_edgecolor("#30363d")
+
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
