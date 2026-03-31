@@ -1515,7 +1515,7 @@ elif seccion == "⚔️ Enfrentamientos":
  
     with tab2:
         if not df_enf.empty:
-            jugadores_unicos = sorted(df["nombre"].unique())
+            jugadores_unicos = nombres
             matriz = pd.DataFrame(0.0, index=jugadores_unicos, columns=jugadores_unicos)
             for _, r in df_enf.iterrows():
                 j1n, j2n = r["jugador1"], r["jugador2"]
