@@ -1319,6 +1319,7 @@ elif seccion == "👤 Perfil Jugador":
 
             x = datos_jugador["hasta_partido"]
             y = datos_jugador["rank"]
+            xlabel = "Partido"
 
         fig, ax = plt.subplots(figsize=(7, 4))
         fig.patch.set_facecolor("#0d1117")
