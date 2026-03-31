@@ -1701,20 +1701,59 @@ elif seccion == "📊 Gráficas":
         fig, ax = plt.subplots(figsize=(14, 6))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
+
         colores = plt.cm.tab10.colors
-        for i, nombre in enumerate(sorted(df["nombre"].unique())):
-            datos = ranking_jornada[ranking_jornada["nombre"] == nombre].sort_values("hasta_jornada")
-            ax.plot(datos["hasta_jornada"], datos["porcentaje_victorias"],
-                    marker="o", linewidth=2, color=colores[i % len(colores)], label=nombre)
+        nombres = ranking_jornada["nombre"].unique()
+
+        for i, nombre in enumerate(nombres):
+            datos = ranking_jornada[
+                ranking_jornada["nombre"] == nombre
+            ].sort_values("hasta_jornada")
+
+            ax.plot(
+                datos["hasta_jornada"],
+                datos["porcentaje_victorias"],
+                marker="o",
+                linewidth=2.5,   # 👈 como ranking
+                markersize=6,    # 👈 como ranking
+                color=colores[i % len(colores)],
+                label=nombre
+            )
+
+        # 🔥 Líneas verticales por jornada (más sutil aquí pero mismo estilo)
+        jornadas = sorted(ranking_jornada["hasta_jornada"].unique())
+
+        for j in jornadas:
+            ax.axvline(
+                x=j,
+                color="#30363d",
+                linewidth=1,
+                linestyle="--",
+                alpha=0.4
+            )
+
+        # Ejes
         ax.set_xlabel("Jornada", color="#8b949e")
         ax.set_ylabel("% Victorias", color="#8b949e")
+
+        # 🔥 margen visual
         ax.set_ylim(-5, 105)
-        ax.set_xticks(sorted(ranking_jornada["hasta_jornada"].unique()))
+
+        ax.set_xticks(jornadas)
         ax.tick_params(colors="#8b949e")
+
         ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
-        ax.legend(facecolor="#161b22", edgecolor="#30363d", labelcolor="#e6edf3", fontsize=9)
+
+        ax.legend(
+            facecolor="#161b22",
+            edgecolor="#30363d",
+            labelcolor="#e6edf3",
+            fontsize=9
+        )
+
         for spine in ax.spines.values():
             spine.set_edgecolor("#30363d")
+
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
