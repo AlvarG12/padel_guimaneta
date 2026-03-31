@@ -178,6 +178,36 @@ def calcular_ranking_por_jornada(df):
     return pd.concat(clasificacion_jornadas, ignore_index=True)
 
 @st.cache_data
+def calcular_ranking_por_partido(df):
+    """Calcula el ranking acumulado tras cada partido individual (no por jornada)."""
+    df = df.copy()
+    df["_id_num"] = df["id_partido"].astype(str).str.split("_").str[0].astype(int)
+    partidos_ord = df.drop_duplicates("id_partido").sort_values(["id_jornada", "_id_num"])
+
+    resultados = []
+    for i, (_, partido_row) in enumerate(partidos_ord.iterrows(), start=1):
+        pid = partido_row["id_partido"]
+        df_hasta = df[df["id_partido"].isin(partidos_ord.iloc[:i]["id_partido"])]
+
+        clas = df_hasta.groupby("nombre").agg(
+            victorias=("victoria", "sum"),
+            partidos_jugados=("id_partido", "count"),
+            juegos_ganados=("juegos_ganados", "sum"),
+            juegos_perdidos=("juegos_perdidos", "sum"),
+        ).reset_index()
+        clas["diferencia_juegos"] = clas["juegos_ganados"] - clas["juegos_perdidos"]
+        clas["porcentaje_victorias"] = (clas["victorias"] / clas["partidos_jugados"] * 100).round(1)
+        clas = clas.sort_values(
+            by=["porcentaje_victorias", "diferencia_juegos", "juegos_ganados"], ascending=False
+        )
+        clas["rank"] = range(1, len(clas) + 1)
+        clas["hasta_partido"] = i
+        clas["id_jornada"] = partido_row["id_jornada"]
+        resultados.append(clas)
+
+    return pd.concat(resultados, ignore_index=True)
+
+@st.cache_data
 def calcular_enfrentamientos(df):
     jugadores_unicos = df["nombre"].unique()
     rows = []
@@ -866,6 +896,7 @@ df_enf = calcular_enfrentamientos(df)
 df_parejas = calcular_parejas(df)
 rachas_activas_df, rachas_max_v_df, rachas_max_d_df = calcular_rachas(df)
 df_rachas_v, df_rachas_d = calcular_rachas_historicas(df)
+ranking_partido = calcular_ranking_por_partido(df)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: CLASIFICACIÓN
@@ -996,27 +1027,56 @@ if seccion == "🏆 Clasificación":
     )
 
     st.divider()
-    st.markdown("## 📈 Evolución del Ranking por Jornada")
+    st.markdown("## 📈 Evolución del Ranking")
+
+    # Toggle jornada / partido
+    vista_ranking = st.radio(
+        "Ver evolución por:",
+        ["🗓️ Jornada", "🎾 Partido"],
+        horizontal=True,
+        key="vista_ranking"
+    )
 
     fig, ax = plt.subplots(figsize=(14, 6))
     fig.patch.set_facecolor("#0d1117")
     ax.set_facecolor("#161b22")
-
     colores = plt.cm.tab10.colors
-    nombres = ranking_jornada["nombre"].unique()
 
-    for i, nombre in enumerate(nombres):
-        datos = ranking_jornada[ranking_jornada["nombre"] == nombre].sort_values("hasta_jornada")
-        ax.plot(datos["hasta_jornada"], datos["rank"],
-                marker="o", linewidth=2.5, markersize=6,
-                color=colores[i % len(colores)], label=nombre)
+    if vista_ranking == "🗓️ Jornada":
+        nombres = ranking_jornada["nombre"].unique()
+        for i, nombre in enumerate(nombres):
+            datos = ranking_jornada[ranking_jornada["nombre"] == nombre].sort_values("hasta_jornada")
+            ax.plot(datos["hasta_jornada"], datos["rank"],
+                    marker="o", linewidth=2.5, markersize=6,
+                    color=colores[i % len(colores)], label=nombre)
+        ax.set_xlabel("Jornada", color="#8b949e")
+        ax.set_xticks(sorted(ranking_jornada["hasta_jornada"].unique()))
+        n_jugadores = ranking_jornada["rank"].max()
+
+    else:  # Por partido
+        nombres = ranking_partido["nombre"].unique()
+        for i, nombre in enumerate(nombres):
+            datos = ranking_partido[ranking_partido["nombre"] == nombre].sort_values("hasta_partido")
+            ax.plot(datos["hasta_partido"], datos["rank"],
+                    marker="o", linewidth=2, markersize=4,
+                    color=colores[i % len(colores)], label=nombre)
+
+        # Líneas verticales separando jornadas
+        jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
+        for _, jrow in jornada_cambios.iterrows():
+            ax.axvline(x=jrow["hasta_partido"] - 0.5, color="#30363d", linewidth=0.8, linestyle="--")
+            ax.text(jrow["hasta_partido"] - 0.5, 0.3, f"J{int(jrow['id_jornada'])}",
+                    color="#8b949e", fontsize=7, ha="center")
+
+        ax.set_xlabel("Nº partido acumulado", color="#8b949e")
+        ax.set_xticks(sorted(ranking_partido["hasta_partido"].unique()))
+        ax.tick_params(axis='x', labelsize=7)
+        n_jugadores = ranking_partido["rank"].max()
 
     ax.invert_yaxis()
-    ax.set_xlabel("Jornada", color="#8b949e")
     ax.set_ylabel("Posición", color="#8b949e")
     ax.tick_params(colors="#8b949e")
-    ax.set_xticks(sorted(ranking_jornada["hasta_jornada"].unique()))
-    ax.set_yticks(range(1, len(nombres) + 1))
+    ax.set_yticks(range(1, int(n_jugadores) + 1))
     ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
     ax.legend(facecolor="#161b22", edgecolor="#30363d", labelcolor="#e6edf3", fontsize=9)
     for spine in ax.spines.values():
