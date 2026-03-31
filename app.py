@@ -1777,10 +1777,7 @@ elif seccion == "📊 Gráficas":
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
 
-        colores = plt.cm.tab10.colors
-        nombres = ranking_jornada["nombre"].unique()
-
-        for i, nombre in enumerate(nombres):
+        for nombre in nombres:
             datos = ranking_jornada[
                 ranking_jornada["nombre"] == nombre
             ].sort_values("hasta_jornada")
@@ -1791,7 +1788,7 @@ elif seccion == "📊 Gráficas":
                 marker="o",
                 linewidth=2.5,   # 👈 como ranking
                 markersize=6,    # 👈 como ranking
-                color=colores[i % len(colores)],
+                color=mapa_colores[nombre],
                 label=nombre
             )
 
@@ -1860,10 +1857,7 @@ elif seccion == "📊 Gráficas":
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
 
-        colores = plt.cm.tab10.colors
-        nombres = ranking_partido["nombre"].unique()
-
-        for i, nombre in enumerate(nombres):
+        for nombre in nombres:
             datos = ranking_partido[ranking_partido["nombre"] == nombre].sort_values("hasta_partido")
 
             ax.plot(
@@ -1872,7 +1866,7 @@ elif seccion == "📊 Gráficas":
                 marker="o",
                 linewidth=2,
                 markersize=4,
-                color=colores[i % len(colores)],
+                color=mapa_colores[nombre],
                 label=nombre
             )
 
