@@ -2149,7 +2149,7 @@ elif seccion == "🧮 Calculadora":
             step=1
         )
         
-        nombres_disponibles = sorted(df["nombre"].unique())
+        nombres_disponibles = nombres
         partidos_simulados = []
         
         st.divider()
