@@ -1329,7 +1329,7 @@ elif seccion == "👤 Perfil Jugador":
             x, y,
             marker="o",
             linewidth=2,
-            markersize=2,
+            markersize=3,
             color="#238636"
         )
 
