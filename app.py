@@ -1340,7 +1340,10 @@ elif seccion == "👤 Perfil Jugador":
         ax.set_xlabel(xlabel, color="#8b949e")
         ax.set_ylabel("Posición", color="#8b949e")
 
-        ax.set_xticks(sorted(x.unique()))
+        if modo_rank == "🗓️ Jornada":
+            ax.set_xticks(sorted(x.unique()))
+        else:
+            ax.set_xticks([])
         ax.set_yticks(range(1, ranking_jornada["rank"].max() + 1))
 
         ax.tick_params(colors="#8b949e")
