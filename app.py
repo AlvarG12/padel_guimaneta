@@ -1330,8 +1330,7 @@ elif seccion == "👤 Perfil Jugador":
             marker="o",
             linewidth=2,
             markersize=2,
-            color="#238636",
-            markersize=7
+            color="#238636"
         )
 
         ax.fill_between(x, y, alpha=0.15, color="#238636")
