@@ -1412,10 +1412,19 @@ elif seccion == "⚔️ Enfrentamientos":
     tab1, tab2 = st.tabs(["🔍 Buscar enfrentamiento", "🗺️ Heatmap completo"])
  
     with tab1:
-        jugadores_lista = sorted(df["nombre"].unique())
         col1, col2 = st.columns(2)
-        j1 = col1.selectbox("Jugador 1", jugadores_lista, key="enf_j1")
-        j2 = col2.selectbox("Jugador 2", [j for j in jugadores_lista if j != j1], key="enf_j2")
+
+        j1 = col1.selectbox(
+            "Jugador 1",
+            nombres,
+            key="enf_j1"
+        )
+
+        j2 = col2.selectbox(
+            "Jugador 2",
+            [j for j in nombres if j != j1],
+            key="enf_j2"
+        )
  
         if not df_enf.empty:
             fila = df_enf[
