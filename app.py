@@ -42,7 +42,7 @@ st.set_page_config(
 
 @st.cache_data(ttl=10)
 def cargar_datos():
-    base_url = "https://raw.githubusercontent.com/AlvarG12/padel_guimaneta/main/data/"
+    base_url = "https://api.github.com/repos/AlvarG12/padel_guimaneta/contents/data/"
     print("🔍 DEBUG: Cargando datos...")
     jugadores = pd.read_csv(base_url + "jugadores.csv")
     print(f"✅ Jugadores cargados: {len(jugadores)} filas")
