@@ -40,7 +40,7 @@ st.set_page_config(
 # CARGA DE DATOS (Adaptada específicamente a tus archivos)
 # ─────────────────────────────────────────────
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=60)
 def cargar_datos():
     base_url = "https://raw.githubusercontent.com/AlvarG12/padel_guimaneta/main/data/"
     print("🔍 DEBUG: Cargando datos...")
@@ -82,7 +82,7 @@ def cargar_datos():
 
     return jugadores, partidos, partido_jugadores
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=60)
 def construir_df(jugadores, partidos, partido_jugadores):
     print("🔍 DEBUG: Construyendo DF CORREGIDO...")
 
