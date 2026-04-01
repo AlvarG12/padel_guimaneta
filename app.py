@@ -3047,7 +3047,10 @@ elif seccion == "🔐 Admin":
     st.markdown("#### 👀 Partido seleccionado")
     st.dataframe(preview)
 
-    confirmar = st.checkbox("⚠️ Confirmo que quiero borrar este partido")
+    confirmar = st.checkbox(
+        "⚠️ Confirmo que quiero borrar este partido",
+        key="confirmar_borrado"
+    )
 
     if st.button("❌ Borrar partido") and confirmar:
 
@@ -3093,6 +3096,7 @@ elif seccion == "🔐 Admin":
 
             st.success(f"✅ Partido {partido_a_borrar} ({temporada_sel}) eliminado")
 
+            st.session_state.confirmar_borrado = False
             st.cache_data.clear()
             st.rerun()
 
