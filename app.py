@@ -3018,18 +3018,31 @@ elif seccion == "🔐 Admin":
 
     partidos_df = partidos.copy()
 
-    # ordenar por id real (quitando temporada si la tienes mezclada)
-    partidos_df = partidos_df.sort_values("id_partido")
+    # ───── selector de temporada ─────
+    temporadas = sorted(partidos_df["temporada"].unique()) if "temporada" in partidos_df.columns else ["25_26"]
 
-    lista_partidos = partidos_df["id_partido"].tolist()
+    temporada_sel = st.selectbox(
+        "Selecciona temporada",
+        temporadas
+    )
+
+    # filtrar por temporada
+    if "temporada" in partidos_df.columns:
+        partidos_filtrados = partidos_df[partidos_df["temporada"] == temporada_sel].copy()
+    else:
+        partidos_filtrados = partidos_df.copy()
+
+    partidos_filtrados = partidos_filtrados.sort_values("id_partido")
+
+    lista_partidos = partidos_filtrados["id_partido"].tolist()
 
     partido_a_borrar = st.selectbox(
         "Selecciona partido a borrar",
         lista_partidos
     )
 
-    # 🔍 mostrar preview
-    preview = partidos_df[partidos_df["id_partido"] == partido_a_borrar]
+    # 🔍 preview
+    preview = partidos_filtrados[partidos_filtrados["id_partido"] == partido_a_borrar]
 
     st.markdown("#### 👀 Partido seleccionado")
     st.dataframe(preview)
@@ -3043,9 +3056,24 @@ elif seccion == "🔐 Admin":
             partidos = pd.read_csv("data/partidos_25_26.csv")
             pj = pd.read_csv("data/partido_jugadores_25_26.csv")
 
-            # filtrar partido
-            partidos = partidos[partidos["id_partido"] != partido_a_borrar]
-            pj = pj[pj["id_partido"] != partido_a_borrar]
+            # si existe temporada, respetarla
+            if "temporada" in partidos.columns:
+                mask = ~(
+                    (partidos["id_partido"] == partido_a_borrar) &
+                    (partidos["temporada"] == temporada_sel)
+                )
+                partidos = partidos[mask]
+            else:
+                partidos = partidos[partidos["id_partido"] != partido_a_borrar]
+
+            # borrar en PJ igual
+            if "temporada" in pj.columns:
+                pj = pj[~(
+                    (pj["id_partido"] == partido_a_borrar) &
+                    (pj["temporada"] == temporada_sel)
+                )]
+            else:
+                pj = pj[pj["id_partido"] != partido_a_borrar]
 
             # subir a github
             partidos_csv = partidos.to_csv(index=False)
@@ -3054,16 +3082,16 @@ elif seccion == "🔐 Admin":
             subir_a_github(
                 "data/partidos_25_26.csv",
                 partidos_csv,
-                f"❌ Borrado partido {partido_a_borrar}"
+                f"❌ Borrado partido {partido_a_borrar} ({temporada_sel})"
             )
 
             subir_a_github(
                 "data/partido_jugadores_25_26.csv",
                 pj_csv,
-                f"❌ Borrado partido {partido_a_borrar}"
+                f"❌ Borrado partido {partido_a_borrar} ({temporada_sel})"
             )
 
-            st.success(f"✅ Partido {partido_a_borrar} eliminado")
+            st.success(f"✅ Partido {partido_a_borrar} ({temporada_sel}) eliminado")
 
             st.cache_data.clear()
             st.rerun()
