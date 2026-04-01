@@ -3009,3 +3009,64 @@ elif seccion == "🔐 Admin":
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
+
+    st.divider()
+
+    # 🗑️ BORRAR PARTIDO
+
+    st.markdown("### 🗑️ Borrar partido")
+
+    partidos_df = partidos.copy()
+
+    # ordenar por id real (quitando temporada si la tienes mezclada)
+    partidos_df = partidos_df.sort_values("id_partido")
+
+    lista_partidos = partidos_df["id_partido"].tolist()
+
+    partido_a_borrar = st.selectbox(
+        "Selecciona partido a borrar",
+        lista_partidos
+    )
+
+    # 🔍 mostrar preview
+    preview = partidos_df[partidos_df["id_partido"] == partido_a_borrar]
+
+    st.markdown("#### 👀 Partido seleccionado")
+    st.dataframe(preview)
+
+    confirmar = st.checkbox("⚠️ Confirmo que quiero borrar este partido")
+
+    if st.button("❌ Borrar partido") and confirmar:
+
+        try:
+            # cargar datos reales
+            partidos = pd.read_csv("data/partidos_25_26.csv")
+            pj = pd.read_csv("data/partido_jugadores_25_26.csv")
+
+            # filtrar partido
+            partidos = partidos[partidos["id_partido"] != partido_a_borrar]
+            pj = pj[pj["id_partido"] != partido_a_borrar]
+
+            # subir a github
+            partidos_csv = partidos.to_csv(index=False)
+            pj_csv = pj.to_csv(index=False)
+
+            subir_a_github(
+                "data/partidos_25_26.csv",
+                partidos_csv,
+                f"❌ Borrado partido {partido_a_borrar}"
+            )
+
+            subir_a_github(
+                "data/partido_jugadores_25_26.csv",
+                pj_csv,
+                f"❌ Borrado partido {partido_a_borrar}"
+            )
+
+            st.success(f"✅ Partido {partido_a_borrar} eliminado")
+
+            st.cache_data.clear()
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"❌ Error al borrar: {e}")
