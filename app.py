@@ -3047,29 +3047,9 @@ elif seccion == "🔐 Admin":
     st.markdown("#### 👀 Partido seleccionado")
     st.dataframe(preview)
 
-    confirmar = st.checkbox(
-        "⚠️ Confirmo que quiero borrar este partido",
-        key="confirmar_borrado"
-    )
+    confirmar = st.checkbox("⚠️ Confirmo que quiero borrar este partido")
 
-    # 🔥 estado del intento de borrado
-    if "intento_borrado" not in st.session_state:
-        st.session_state.intento_borrado = False
-
-    # activar intento
-    if st.button("❌ Borrar partido"):
-        st.session_state.intento_borrado = True
-
-
-    # ─────────────────────────────────────────
-    # CONTROL REAL DE BORRADO
-    # ─────────────────────────────────────────
-
-    if st.session_state.intento_borrado:
-
-        if not confirmar:
-            st.warning("⚠️ Debes confirmar antes de borrar")
-            st.stop()
+    if st.button("❌ Borrar partido") and confirmar:
 
         try:
             # cargar datos reales
@@ -3086,6 +3066,7 @@ elif seccion == "🔐 Admin":
             else:
                 partidos = partidos[partidos["id_partido"] != partido_a_borrar]
 
+            # borrar en PJ igual
             if "temporada" in pj.columns:
                 pj = pj[~(
                     (pj["id_partido"] == partido_a_borrar) &
@@ -3113,11 +3094,6 @@ elif seccion == "🔐 Admin":
             st.success(f"✅ Partido {partido_a_borrar} ({temporada_sel}) eliminado")
 
             st.cache_data.clear()
-
-            # 🔥 reset TOTAL del flujo
-            st.session_state.intento_borrado = False
-            st.session_state.confirmar_borrado = False
-
             st.rerun()
 
         except Exception as e:
