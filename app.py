@@ -2882,6 +2882,7 @@ elif seccion == "🔐 Admin":
 
     with col_info2:
         sede = st.text_input("Sede", value="")
+        comentario = st.text_input("Comentario del partido (opcional)")
 
     st.markdown("---")
 
@@ -2960,6 +2961,7 @@ elif seccion == "🔐 Admin":
                 "juegos_equipo1": score1,
                 "juegos_equipo2": score2,
                 "equipo_ganador": ganador
+                "comentario": comentario
             }
 
             nuevos_pj = [
