@@ -7,6 +7,8 @@ import seaborn as sns
 import itertools
 import os
 import unicodedata
+import requests
+import base64
 
 # 🔤 Quitar acentos
 def quitar_acentos(texto):
@@ -2822,3 +2824,131 @@ elif seccion == "🔍 Buscador":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECCIÓN: ADMIN
+# ─────────────────────────────────────────────────────────────────────────────
+elif seccion == "🔐 Admin":
+
+    st.markdown("## 🔐 Panel Admin")
+
+    # 🔐 LOGIN
+    password = st.text_input("Contraseña", type="password")
+
+    if password != st.secrets["admin_password"]:
+        st.warning("Acceso restringido")
+        st.stop()
+
+    st.success("Acceso concedido")
+
+    st.divider()
+
+    # ─────────────────────────────────────
+    # FORMULARIO
+    # ─────────────────────────────────────
+    with st.form("nuevo_partido"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            j1 = st.selectbox("Jugador 1", nombres)
+            j2 = st.selectbox("Jugador 2", [j for j in nombres if j != j1])
+
+        with col2:
+            j3 = st.selectbox("Jugador 3", [j for j in nombres if j not in [j1, j2]])
+            j4 = st.selectbox("Jugador 4", [j for j in nombres if j not in [j1, j2, j3]])
+
+        colr1, colr2 = st.columns(2)
+
+        with colr1:
+            score1 = st.number_input("Juegos Equipo 1", 0, 7)
+
+        with colr2:
+            score2 = st.number_input("Juegos Equipo 2", 0, 7)
+
+        jornada = st.number_input("Jornada", min_value=1, step=1)
+
+        submit = st.form_submit_button("Guardar partido")
+
+    # ─────────────────────────────────────
+    # FUNCIÓN GITHUB
+    # ─────────────────────────────────────
+    def subir_a_github(path, contenido, mensaje):
+        token = st.secrets["github_token"]
+        repo = "AlvarG12/padel_guimaneta"
+
+        url = f"https://api.github.com/repos/{repo}/contents/{path}"
+
+        contenido_b64 = base64.b64encode(contenido.encode()).decode()
+
+        r = requests.get(url, headers={"Authorization": f"token {token}"})
+        sha = r.json().get("sha") if r.status_code == 200 else None
+
+        data = {
+            "message": mensaje,
+            "content": contenido_b64,
+            "branch": "main"
+        }
+
+        if sha:
+            data["sha"] = sha
+
+        requests.put(url, json=data, headers={"Authorization": f"token {token}"})
+
+    # ─────────────────────────────────────
+    # GUARDAR PARTIDO
+    # ─────────────────────────────────────
+    if submit:
+
+        try:
+            partidos = pd.read_csv("data/partidos_25_26.csv")
+            pj = pd.read_csv("data/partido_jugadores_25_26.csv")
+            jugadores = pd.read_csv("data/jugadores.csv")
+
+            # mapa nombre → id
+            mapa = dict(zip(jugadores["nombre"], jugadores["id_jugador"]))
+
+            new_id = partidos["id_partido"].max() + 1
+
+            ganador = 1 if score1 > score2 else 2
+
+            nuevo_partido = {
+                "id_partido": new_id,
+                "id_jornada": jornada,
+                "juegos_equipo1": score1,
+                "juegos_equipo2": score2,
+                "equipo_ganador": ganador
+            }
+
+            nuevos_pj = [
+                {"id_partido": new_id, "id_jugador": mapa[j1], "equipo": 1},
+                {"id_partido": new_id, "id_jugador": mapa[j2], "equipo": 1},
+                {"id_partido": new_id, "id_jugador": mapa[j3], "equipo": 2},
+                {"id_partido": new_id, "id_jugador": mapa[j4], "equipo": 2},
+            ]
+
+            partidos = pd.concat([partidos, pd.DataFrame([nuevo_partido])], ignore_index=True)
+            pj = pd.concat([pj, pd.DataFrame(nuevos_pj)], ignore_index=True)
+
+            # convertir a CSV
+            partidos_csv = partidos.to_csv(index=False)
+            pj_csv = pj.to_csv(index=False)
+
+            # subir a GitHub
+            subir_a_github(
+                "data/partidos_25_26.csv",
+                partidos_csv,
+                f"Nuevo partido jornada {jornada}"
+            )
+
+            subir_a_github(
+                "data/partido_jugadores_25_26.csv",
+                pj_csv,
+                f"Nuevo partido jornada {jornada}"
+            )
+
+            st.success("✅ Partido guardado y subido a GitHub")
+
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
