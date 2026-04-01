@@ -3052,9 +3052,21 @@ elif seccion == "🔐 Admin":
         key="confirmar_borrado"
     )
 
-    if st.button("❌ Borrar partido"):
+    # 🔥 estado del intento de borrado
+    if "intento_borrado" not in st.session_state:
+        st.session_state.intento_borrado = False
 
-        # 🔥 control correcto (evita borrado sin confirmar)
+    # activar intento
+    if st.button("❌ Borrar partido"):
+        st.session_state.intento_borrado = True
+
+
+    # ─────────────────────────────────────────
+    # CONTROL REAL DE BORRADO
+    # ─────────────────────────────────────────
+
+    if st.session_state.intento_borrado:
+
         if not confirmar:
             st.warning("⚠️ Debes confirmar antes de borrar")
             st.stop()
@@ -3074,7 +3086,6 @@ elif seccion == "🔐 Admin":
             else:
                 partidos = partidos[partidos["id_partido"] != partido_a_borrar]
 
-            # borrar en PJ igual
             if "temporada" in pj.columns:
                 pj = pj[~(
                     (pj["id_partido"] == partido_a_borrar) &
@@ -3103,8 +3114,9 @@ elif seccion == "🔐 Admin":
 
             st.cache_data.clear()
 
-            # 🔥 RESET SEGURO DEL CHECKBOX
-            st.session_state["confirmar_borrado"] = False
+            # 🔥 reset TOTAL del flujo
+            st.session_state.intento_borrado = False
+            st.session_state.confirmar_borrado = False
 
             st.rerun()
 
