@@ -2960,7 +2960,7 @@ elif seccion == "🔐 Admin":
                 "sede": sede,
                 "juegos_equipo1": score1,
                 "juegos_equipo2": score2,
-                "equipo_ganador": ganador
+                "equipo_ganador": ganador,
                 "comentario": comentario
             }
 
