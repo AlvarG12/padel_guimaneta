@@ -2961,5 +2961,9 @@ elif seccion == "🔐 Admin":
 
             st.success("✅ Partido guardado y subido a GitHub")
 
+            st.cache_data.clear()
+            st.success("🔄 Datos actualizados en la web")
+            st.rerun()
+
         except Exception as e:
             st.error(f"❌ Error: {e}")
