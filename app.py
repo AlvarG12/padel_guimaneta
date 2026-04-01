@@ -885,7 +885,8 @@ with st.sidebar:
             "🔥 Rachas",
             "📊 Gráficas",
             "💻 Predictor",
-            "🧮 Calculadora"
+            "🧮 Calculadora",
+            "🔍 Buscador"
         ],
         label_visibility="collapsed"
     )
@@ -2604,3 +2605,220 @@ elif seccion == "🧮 Calculadora":
                         <div style="color:#8b949e; font-size:0.85rem;">Ganados cara a cara contra <b>{nombre_rival}</b> para quitarle el puesto.</div>
                     </div>
                     """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECCIÓN: BUSCADOR
+# ─────────────────────────────────────────────────────────────────────────────
+elif seccion == "🔍 Buscador":
+    st.markdown("## 🔍 Buscador de Partidos")
+
+    tab_pareja, tab_enfrentamiento = st.tabs([
+        "🤝 Partidos de una pareja",
+        "⚔️ Pareja contra pareja"
+    ])
+
+    # ── TAB 1: partidos de una pareja ──────────────────────────────────────
+    with tab_pareja:
+        st.markdown("### Todos los partidos de una pareja")
+
+        col1, col2 = st.columns(2)
+        pa = col1.selectbox("Jugador A", nombres, key="bus_pa")
+        pb = col2.selectbox("Jugador B", [j for j in nombres if j != pa], key="bus_pb")
+
+        # Buscar partidos donde pa y pb jugaron juntos (mismo equipo)
+        s1 = df_completo[df_completo["nombre"] == pa][["id_partido", "equipo", "victoria",
+                                                         "juegos_ganados", "juegos_perdidos",
+                                                         "id_jornada", "temporada"]]
+        s2 = df_completo[df_completo["nombre"] == pb][["id_partido", "equipo"]]
+        juntos = s1.merge(s2, on=["id_partido", "equipo"])
+
+        if juntos.empty:
+            st.info(f"**{pa}** y **{pb}** no han jugado juntos todavía.")
+        else:
+            pids = juntos["id_partido"].unique()
+            df_partidos = df_completo[df_completo["id_partido"].isin(pids)].copy()
+            df_partidos["_fecha_dt"] = pd.to_datetime(df_partidos["fecha"], errors="coerce")
+            df_partidos_unicos = df_partidos.drop_duplicates("id_partido").sort_values(
+                "_fecha_dt", ascending=False
+            )
+
+            total = len(df_partidos_unicos)
+            victorias = juntos["victoria"].sum()
+            derrotas = total - victorias
+            pct = round(victorias / total * 100, 1) if total > 0 else 0
+
+            # Resumen
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("🎾 Partidos juntos", total)
+            c2.metric("✅ Victorias", int(victorias))
+            c3.metric("❌ Derrotas", int(derrotas))
+            c4.metric("📈 % Victorias", f"{pct}%")
+
+            st.divider()
+
+            for _, partido in df_partidos_unicos.iterrows():
+                pid = partido["id_partido"]
+                fecha_display = partido["_fecha_dt"].strftime("%d/%m/%Y") if pd.notna(partido["_fecha_dt"]) else "N/A"
+                temp_label = str(partido["temporada"]) if "temporada" in partido else ""
+
+                jugadores_partido = df_completo[df_completo["id_partido"] == pid]
+                equipo_pareja = jugadores_partido[jugadores_partido["nombre"] == pa]["equipo"].values[0]
+
+                eq_azul = jugadores_partido[jugadores_partido["equipo"] == equipo_pareja]["nombre"].tolist()
+                eq_rojo = jugadores_partido[jugadores_partido["equipo"] != equipo_pareja]["nombre"].tolist()
+
+                fila = jugadores_partido.iloc[0]
+                if equipo_pareja == 1:
+                    g_azul, g_rojo = int(fila["juegos_equipo1"]), int(fila["juegos_equipo2"])
+                    gano_azul = fila["equipo_ganador"] == 1
+                else:
+                    g_azul, g_rojo = int(fila["juegos_equipo2"]), int(fila["juegos_equipo1"])
+                    gano_azul = fila["equipo_ganador"] == 2
+
+                color_score_azul = "#238636" if gano_azul else "#da3633"
+                color_score_rojo = "#da3633" if gano_azul else "#238636"
+                resultado_txt = "VICTORIA" if gano_azul else "DERROTA"
+                resultado_color = "#238636" if gano_azul else "#da3633"
+
+                txt_azul = " & ".join(eq_azul)
+                txt_rojo = " & ".join(eq_rojo)
+                num_partido = str(pid).split("_")[0]
+
+                st.markdown(f"""
+                <div style="background:#0d1117; border:1px solid #30363d; border-radius:10px;
+                            padding:12px 16px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="color:#8b949e; font-size:0.78rem;">
+                            📅 {fecha_display}
+                            <span style="margin-left:8px; color:#58a6ff; background:#58a6ff11;
+                                         padding:2px 6px; border-radius:4px;">{temp_label}</span>
+                            <span style="margin-left:6px; color:#8b949e;">· Partido #{num_partido}</span>
+                        </span>
+                        <span style="font-size:0.7rem; color:{resultado_color};
+                                     background:{resultado_color}22; padding:2px 8px;
+                                     border-radius:4px; border:1px solid {resultado_color}44;
+                                     font-weight:700;">{resultado_txt}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                        <div style="flex:1; text-align:right; color:#1f6feb;
+                                    font-weight:600; font-size:0.9rem;">{txt_azul}</div>
+                        <div style="background:#161b22; padding:4px 14px; border-radius:6px;
+                                    border:1px solid #30363d; text-align:center; min-width:70px;">
+                            <span style="font-weight:800; font-size:1.2rem;
+                                         color:{color_score_azul};">{g_azul}</span>
+                            <span style="color:#8b949e; margin:0 4px;">-</span>
+                            <span style="font-weight:800; font-size:1.2rem;
+                                         color:{color_score_rojo};">{g_rojo}</span>
+                        </div>
+                        <div style="flex:1; text-align:left; color:#da3633;
+                                    font-weight:600; font-size:0.9rem;">{txt_rojo}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ── TAB 2: pareja contra pareja ────────────────────────────────────────
+    with tab_enfrentamiento:
+        st.markdown("### Partidos entre dos parejas concretas")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**🔵 Pareja 1**")
+            e1a = st.selectbox("Jugador A", nombres, key="bus_e1a")
+            e1b = st.selectbox("Jugador B", [j for j in nombres if j != e1a], key="bus_e1b")
+        with col2:
+            st.markdown("**🔴 Pareja 2**")
+            disp2 = [j for j in nombres if j not in [e1a, e1b]]
+            e2a = st.selectbox("Jugador C", disp2, key="bus_e2a")
+            e2b = st.selectbox("Jugador D", [j for j in disp2 if j != e2a], key="bus_e2b")
+
+        eq1_bus = [e1a, e1b]
+        eq2_bus = [e2a, e2b]
+
+        # Buscar partidos exactos (cualquier combinación de equipos)
+        p_ids = set()
+        for e1, e2 in [(1, 2), (2, 1)]:
+            s_e1a = set(df_completo[(df_completo["nombre"] == e1a) & (df_completo["equipo"] == e1)]["id_partido"])
+            s_e1b = set(df_completo[(df_completo["nombre"] == e1b) & (df_completo["equipo"] == e1)]["id_partido"])
+            s_e2a = set(df_completo[(df_completo["nombre"] == e2a) & (df_completo["equipo"] == e2)]["id_partido"])
+            s_e2b = set(df_completo[(df_completo["nombre"] == e2b) & (df_completo["equipo"] == e2)]["id_partido"])
+            p_ids.update(s_e1a & s_e1b & s_e2a & s_e2b)
+
+        if not p_ids:
+            st.info(f"**{e1a} & {e1b}** nunca se han enfrentado a **{e2a} & {e2b}**.")
+        else:
+            df_h2h = df_completo[df_completo["id_partido"].isin(p_ids)].copy()
+            df_h2h["_fecha_dt"] = pd.to_datetime(df_h2h["fecha"], errors="coerce")
+            df_h2h_unicos = df_h2h.drop_duplicates("id_partido").sort_values("_fecha_dt", ascending=False)
+
+            # Contar victorias de cada pareja
+            v_eq1, v_eq2 = 0, 0
+            for _, partido in df_h2h_unicos.iterrows():
+                pid = partido["id_partido"]
+                equipo_e1 = df_completo[(df_completo["id_partido"] == pid) &
+                                        (df_completo["nombre"] == e1a)]["equipo"].values[0]
+                gano_e1 = partido["equipo_ganador"] == equipo_e1
+                if gano_e1:
+                    v_eq1 += 1
+                else:
+                    v_eq2 += 1
+
+            total_h2h = len(df_h2h_unicos)
+
+            # Resumen
+            c1, c2, c3 = st.columns(3)
+            c1.metric("🎾 Partidos", total_h2h)
+            c2.metric(f"🔵 {e1a} & {e1b}", f"{v_eq1} victorias ({round(v_eq1/total_h2h*100)}%)")
+            c3.metric(f"🔴 {e2a} & {e2b}", f"{v_eq2} victorias ({round(v_eq2/total_h2h*100)}%)")
+
+            st.divider()
+
+            for _, partido in df_h2h_unicos.iterrows():
+                pid = partido["id_partido"]
+                fecha_display = partido["_fecha_dt"].strftime("%d/%m/%Y") if pd.notna(partido["_fecha_dt"]) else "N/A"
+                temp_label = str(partido["temporada"]) if "temporada" in partido else ""
+                num_partido = str(pid).split("_")[0]
+
+                equipo_e1 = df_completo[(df_completo["id_partido"] == pid) &
+                                        (df_completo["nombre"] == e1a)]["equipo"].values[0]
+                gano_e1 = partido["equipo_ganador"] == equipo_e1
+
+                if equipo_e1 == 1:
+                    g_azul, g_rojo = int(partido["juegos_equipo1"]), int(partido["juegos_equipo2"])
+                else:
+                    g_azul, g_rojo = int(partido["juegos_equipo2"]), int(partido["juegos_equipo1"])
+
+                color_azul = "#238636" if gano_e1 else "#da3633"
+                color_rojo = "#da3633" if gano_e1 else "#238636"
+                resultado_txt = f"Ganan {e1a} & {e1b}" if gano_e1 else f"Ganan {e2a} & {e2b}"
+                resultado_color = "#238636" if gano_e1 else "#da3633"
+
+                st.markdown(f"""
+                <div style="background:#0d1117; border:1px solid #30363d; border-radius:10px;
+                            padding:12px 16px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="color:#8b949e; font-size:0.78rem;">
+                            📅 {fecha_display}
+                            <span style="margin-left:8px; color:#58a6ff; background:#58a6ff11;
+                                         padding:2px 6px; border-radius:4px;">{temp_label}</span>
+                            <span style="margin-left:6px; color:#8b949e;">· Partido #{num_partido}</span>
+                        </span>
+                        <span style="font-size:0.7rem; color:{resultado_color};
+                                     background:{resultado_color}22; padding:2px 8px;
+                                     border-radius:4px; border:1px solid {resultado_color}44;
+                                     font-weight:600;">{resultado_txt}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                        <div style="flex:1; text-align:right; color:#1f6feb;
+                                    font-weight:600; font-size:0.9rem;">{e1a} & {e1b}</div>
+                        <div style="background:#161b22; padding:4px 14px; border-radius:6px;
+                                    border:1px solid #30363d; text-align:center; min-width:70px;">
+                            <span style="font-weight:800; font-size:1.2rem; color:{color_azul};">{g_azul}</span>
+                            <span style="color:#8b949e; margin:0 4px;">-</span>
+                            <span style="font-weight:800; font-size:1.2rem; color:{color_rojo};">{g_rojo}</span>
+                        </div>
+                        <div style="flex:1; text-align:left; color:#da3633;
+                                    font-weight:600; font-size:0.9rem;">{e2a} & {e2b}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
