@@ -3052,7 +3052,12 @@ elif seccion == "🔐 Admin":
         key="confirmar_borrado"
     )
 
-    if st.button("❌ Borrar partido") and confirmar:
+    if st.button("❌ Borrar partido"):
+
+        # 🔥 control correcto (evita borrado sin confirmar)
+        if not confirmar:
+            st.warning("⚠️ Debes confirmar antes de borrar")
+            st.stop()
 
         try:
             # cargar datos reales
@@ -3096,8 +3101,11 @@ elif seccion == "🔐 Admin":
 
             st.success(f"✅ Partido {partido_a_borrar} ({temporada_sel}) eliminado")
 
-            st.session_state.confirmar_borrado = False
             st.cache_data.clear()
+
+            # 🔥 RESET SEGURO DEL CHECKBOX
+            st.session_state["confirmar_borrado"] = False
+
             st.rerun()
 
         except Exception as e:
