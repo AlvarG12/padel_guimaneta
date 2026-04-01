@@ -2863,10 +2863,10 @@ elif seccion == "🔐 Admin":
         colr1, colr2 = st.columns(2)
 
         with colr1:
-            score1 = st.number_input("Juegos Equipo 1", 0, 7)
+            score1 = st.number_input("Juegos Equipo 1", 0, 2)
 
         with colr2:
-            score2 = st.number_input("Juegos Equipo 2", 0, 7)
+            score2 = st.number_input("Juegos Equipo 2", 0, 2)
 
         jornada = st.number_input("Jornada", min_value=1, step=1)
 
