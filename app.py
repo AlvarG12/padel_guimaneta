@@ -888,7 +888,8 @@ with st.sidebar:
             "📊 Gráficas",
             "💻 Predictor",
             "🧮 Calculadora",
-            "🔍 Buscador"
+            "🔍 Buscador",
+            "🔐 Admin"
         ],
         label_visibility="collapsed"
     )
