@@ -1,4 +1,5 @@
 id_partido,id_jornada,juegos_equipo1,juegos_equipo2,comentario,fecha,sede,equipo_ganador
+1,1,0,2,,2025-12-16,Moscatelares,2.0
 2,1,2,0,,2025-12-16,Moscatelares,1.0
 3,1,2,0,,2025-12-16,Moscatelares,1.0
 4,2,2,0,,2025-12-23,Moscatelares,1.0
