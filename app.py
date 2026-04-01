@@ -2834,20 +2834,32 @@ elif seccion == "🔐 Admin":
 
     st.markdown("## 🔐 Panel Admin")
 
-    # 🔐 LOGIN
-    password = st.text_input("Contraseña", type="password")
+    if "admin_ok" not in st.session_state:
+        st.session_state.admin_ok = False
 
-    if password != st.secrets["admin_password"]:
-        st.warning("Acceso restringido")
+    if not st.session_state.admin_ok:
+
+        password = st.text_input("Contraseña", type="password")
+
+        if password:
+            if password == st.secrets["admin_password"]:
+                st.session_state.admin_ok = True
+                st.rerun()
+            else:
+                st.warning("Acceso restringido")
+        
         st.stop()
 
     st.success("Acceso concedido")
 
+    # (opcional) botón logout
+    if st.button("Cerrar sesión"):
+        st.session_state.admin_ok = False
+        st.rerun()
+
     st.divider()
 
-    # ─────────────────────────────────────
     # FORMULARIO
-    # ─────────────────────────────────────
     with st.form("nuevo_partido"):
 
         col1, col2 = st.columns(2)
@@ -2872,9 +2884,7 @@ elif seccion == "🔐 Admin":
 
         submit = st.form_submit_button("Guardar partido")
 
-    # ─────────────────────────────────────
     # FUNCIÓN GITHUB
-    # ─────────────────────────────────────
     def subir_a_github(path, contenido, mensaje):
         token = st.secrets["github_token"]
         repo = "AlvarG12/padel_guimaneta"
@@ -2897,9 +2907,7 @@ elif seccion == "🔐 Admin":
 
         requests.put(url, json=data, headers={"Authorization": f"token {token}"})
 
-    # ─────────────────────────────────────
     # GUARDAR PARTIDO
-    # ─────────────────────────────────────
     if submit:
 
         try:
