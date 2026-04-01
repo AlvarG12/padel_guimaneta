@@ -26,6 +26,21 @@ def crear_mapa_colores(nombres):
     colores = plt.cm.tab10.colors
     return {nombre: colores[i % len(colores)] for i, nombre in enumerate(nombres)}
 
+def leer_csv_github(repo, path):
+    url = f"https://api.github.com/repos/{repo}/contents/{path}"
+    headers = {"Authorization": f"token {st.secrets['github_token']}"}
+
+    r = requests.get(url, headers=headers)
+
+    if r.status_code != 200:
+        raise Exception(f"Error GitHub API: {r.text}")
+
+    data = r.json()
+
+    content = base64.b64decode(data["content"]).decode("utf-8")
+
+    return pd.read_csv(pd.io.common.StringIO(content))
+
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
@@ -42,27 +57,25 @@ st.set_page_config(
 
 @st.cache_data(ttl=10)
 def cargar_datos():
-    base_url = "https://api.github.com/repos/AlvarG12/padel_guimaneta/contents/data/"
+    repo = "AlvarG12/padel_guimaneta"
+
     print("🔍 DEBUG: Cargando datos...")
-    jugadores = pd.read_csv(base_url + "jugadores.csv")
-    print(f"✅ Jugadores cargados: {len(jugadores)} filas")
+
+    jugadores = leer_csv_github(repo, "data/jugadores.csv")
 
     def leer_temp(suffix, label):
-        url_p = base_url + f"partidos_{suffix}.csv"
-        url_pj = base_url + f"partido_jugadores_{suffix}.csv"
-
         try:
-            p = pd.read_csv(url_p)
-            pj = pd.read_csv(url_pj)
+            p = leer_csv_github(repo, f"data/partidos_{suffix}.csv")
+            pj = leer_csv_github(repo, f"data/partido_jugadores_{suffix}.csv")
 
             p["temporada"] = label
             pj["temporada"] = label
 
-            print(f"✅ Temporada {label}: {len(p)} partidos, {len(pj)} PJ")
+            print(f"✅ {label}: {len(p)} partidos")
             return p, pj
 
         except Exception as e:
-            print(f"❌ Error cargando {suffix}: {e}")
+            print(f"❌ Error {suffix}: {e}")
             return pd.DataFrame(), pd.DataFrame()
 
     p24, pj24 = leer_temp("24_25", "2024/25")
