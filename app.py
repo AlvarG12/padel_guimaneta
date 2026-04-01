@@ -40,27 +40,29 @@ st.set_page_config(
 # CARGA DE DATOS (Adaptada específicamente a tus archivos)
 # ─────────────────────────────────────────────
 
-@st.cache_data(ttl=3600)
-def cargar_datos(base_path="data/"):
+@st.cache_data(ttl=10)
+def cargar_datos():
+    base_url = "https://raw.githubusercontent.com/AlvarG12/padel_guimaneta/main/data/"
     print("🔍 DEBUG: Cargando datos...")
-    jugadores = pd.read_csv(os.path.join(base_path, "jugadores.csv"))
+    jugadores = pd.read_csv(base_url + "jugadores.csv")
     print(f"✅ Jugadores cargados: {len(jugadores)} filas")
 
     def leer_temp(suffix, label):
-        file_p = os.path.join(base_path, f"partidos_{suffix}.csv")
-        file_pj = os.path.join(base_path, f"partido_jugadores_{suffix}.csv")
+        url_p = base_url + f"partidos_{suffix}.csv"
+        url_pj = base_url + f"partido_jugadores_{suffix}.csv"
 
-        print(f"🔍 Buscando: partidos_{suffix}.csv y partido_jugadores_{suffix}.csv")
+        try:
+            p = pd.read_csv(url_p)
+            pj = pd.read_csv(url_pj)
 
-        if os.path.exists(file_p) and os.path.exists(file_pj):
-            p = pd.read_csv(file_p)
-            pj = pd.read_csv(file_pj)
             p["temporada"] = label
             pj["temporada"] = label
+
             print(f"✅ Temporada {label}: {len(p)} partidos, {len(pj)} PJ")
             return p, pj
-        else:
-            print(f"❌ Archivos {suffix} NO encontrados")
+
+        except Exception as e:
+            print(f"❌ Error cargando {suffix}: {e}")
             return pd.DataFrame(), pd.DataFrame()
 
     p24, pj24 = leer_temp("24_25", "2024/25")
@@ -80,7 +82,7 @@ def cargar_datos(base_path="data/"):
 
     return jugadores, partidos, partido_jugadores
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=10)
 def construir_df(jugadores, partidos, partido_jugadores):
     print("🔍 DEBUG: Construyendo DF CORREGIDO...")
 
