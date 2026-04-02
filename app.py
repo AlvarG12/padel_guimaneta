@@ -1273,7 +1273,6 @@ elif seccion == "📋 Detalle":
         eq1 = " y ".join(equipo1)
         eq2 = " y ".join(equipo2)
 
-        # Juegos
         p_row = grupo.iloc[0]
         g1 = int(p_row["juegos_equipo1"])
         g2 = int(p_row["juegos_equipo2"])
@@ -1285,8 +1284,13 @@ elif seccion == "📋 Detalle":
         else:
             texto_ganador = f"{eq2} ganan el partido"
 
+        # 🆕 comentario
+        comentario = ""
+        if "comentario" in p_row and pd.notna(p_row["comentario"]) and p_row["comentario"] != "":
+            comentario = f" 📝 *({p_row['comentario']})*"
+
         st.markdown(
-            f"**{num_partido}. {eq1} vs {eq2}: {g1}-{g2}**  \n"
+            f"**{num_partido}. {eq1} vs {eq2}: {g1}-{g2}**{comentario}  \n"
             f"_{texto_ganador}_"
         )
 
