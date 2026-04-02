@@ -52,10 +52,10 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
-# CARGA DE DATOS (Adaptada específicamente a tus archivos)
+# CARGA DE DATOS
 # ─────────────────────────────────────────────
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def cargar_datos():
     repo = "AlvarG12/padel_guimaneta"
 
@@ -95,7 +95,7 @@ def cargar_datos():
 
     return jugadores, partidos, partido_jugadores
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def construir_df(jugadores, partidos, partido_jugadores):
     print("🔍 DEBUG: Construyendo DF CORREGIDO...")
 
@@ -137,7 +137,7 @@ def construir_df(jugadores, partidos, partido_jugadores):
 
     return df
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def calcular_clasificacion(df):
     clas = df.groupby("nombre").agg(
         partidos_jugados=("id_partido", "count"),
@@ -168,7 +168,7 @@ def calcular_clasificacion(df):
     clas.index = clas.index + 1
     return clas
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def calcular_ranking_por_jornada(df):
     jornadas = sorted(df["id_jornada"].unique())
     clasificacion_jornadas = []
@@ -204,7 +204,7 @@ def calcular_ranking_por_jornada(df):
 
     return pd.concat(clasificacion_jornadas, ignore_index=True)
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def calcular_ranking_por_partido(df):
     """Calcula el ranking acumulado tras cada partido individual (no por jornada)."""
     df = df.copy()
@@ -234,7 +234,7 @@ def calcular_ranking_por_partido(df):
 
     return pd.concat(resultados, ignore_index=True)
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def calcular_enfrentamientos(df):
     jugadores_unicos = df["nombre"].unique()
     rows = []
@@ -259,7 +259,7 @@ def calcular_enfrentamientos(df):
         df_enf["pct_j2"] = (df_enf["victorias_jugador2"] / df_enf["partidos_totales"] * 100).round(1)
     return df_enf
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def calcular_parejas(df):
     jugadores_unicos = df["nombre"].unique()
     rows = []
@@ -286,7 +286,7 @@ def calcular_parejas(df):
         )
     return df_pj
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def calcular_rachas(df):
     rachas_activas, rachas_max_v, rachas_max_d = [], [], []
 
@@ -335,7 +335,7 @@ def calcular_rachas(df):
         pd.DataFrame(rachas_max_d).sort_values("max_racha_derrotas", ascending=False),
     )
 
-@st.cache_data(ttl=10)
+@st.cache_data
 def calcular_rachas_historicas(df):
     rachas_victorias = []
     rachas_derrotas = []
