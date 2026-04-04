@@ -36,3 +36,4 @@ id_partido,id_jornada,juegos_equipo1,juegos_equipo2,comentario,fecha,sede,equipo
 35,5,0,2,Investigacion Esteban Match Fixing,2026-04-01,Moscatelares,2.0
 36,5,2,1,,2026-04-01,Moscatelares,1.0
 37,6,2,1,,2026-04-04,Moscatelares,1.0
+38,6,1,2,,2026-04-04,Moscatelares,2.0
