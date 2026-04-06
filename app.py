@@ -10,6 +10,7 @@ import unicodedata
 import requests
 import base64
 import plotly.express as px
+import plotly.graph_objects as go
 
 # 🔤 Quitar acentos
 def quitar_acentos(texto):
@@ -1805,175 +1806,145 @@ elif seccion == "📊 Gráficas":
 
     with tab3:
         plot_data = clasificacion.sort_values("partidos_jugados", ascending=False)
-        fig, ax = plt.subplots(figsize=(12, 6))
-        fig.patch.set_facecolor("#0d1117")
-        ax.set_facecolor("#161b22")
 
-        x = range(len(plot_data))
-        ax.bar(x, plot_data["derrotas"], color="#da3633", label="Derrotas", width=0.6)
-        ax.bar(x, plot_data["victorias"], bottom=plot_data["derrotas"], color="#238636", label="Victorias", width=0.6)
+        fig = go.Figure()
 
-        for i, (idx, row) in enumerate(plot_data.iterrows()):
-            ax.text(i, row["derrotas"] / 2, str(int(row["derrotas"])),
-                    ha="center", va="center", color="white", fontsize=9, fontweight="bold")
-            ax.text(i, row["derrotas"] + row["victorias"] / 2, str(int(row["victorias"])),
-                    ha="center", va="center", color="white", fontsize=9, fontweight="bold")
-            ax.text(i, row["partidos_jugados"] + 0.3, f"{row['porcentaje_victorias']}%",
-                    ha="center", va="bottom", color="#e6edf3", fontsize=9)
+        # Derrotas
+        fig.add_bar(
+            x=plot_data["nombre"],
+            y=plot_data["derrotas"],
+            name="Derrotas",
+            marker_color="#da3633"
+        )
 
-        ax.set_xticks(list(x))
-        ax.set_xticklabels(plot_data["nombre"], rotation=30, ha="right", color="#e6edf3")
-        ax.set_ylabel("Partidos", color="#8b949e")
-        ax.tick_params(colors="#8b949e")
-        ax.legend(facecolor="#161b22", edgecolor="#30363d", labelcolor="#e6edf3")
-        ax.grid(axis="y", linestyle="--", alpha=0.3, color="#30363d")
-        for spine in ax.spines.values():
-            spine.set_edgecolor("#30363d")
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        # Victorias (stacked)
+        fig.add_bar(
+            x=plot_data["nombre"],
+            y=plot_data["victorias"],
+            name="Victorias",
+            marker_color="#238636"
+        )
+
+        # % texto arriba
+        for i, row in plot_data.iterrows():
+            fig.add_annotation(
+                x=row["nombre"],
+                y=row["partidos_jugados"] + 0.5,
+                text=f"{row['porcentaje_victorias']}%",
+                showarrow=False,
+                font=dict(size=10, color="#e6edf3")
+            )
+
+        fig.update_layout(
+            barmode="stack",
+            title="Victorias / Derrotas",
+            template="plotly_dark",
+            xaxis_tickangle=30,
+            height=500
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
     with tab1:
-        fig, ax = plt.subplots(figsize=(14, 6))
-        fig.patch.set_facecolor("#0d1117")
-        ax.set_facecolor("#161b22")
+        fig = go.Figure()
 
         for nombre in nombres:
             datos = ranking_jornada[
                 ranking_jornada["nombre"] == nombre
             ].sort_values("hasta_jornada")
 
-            ax.plot(
-                datos["hasta_jornada"],
-                datos["porcentaje_victorias"],
-                marker="o",
-                linewidth=2.5,   # 👈 como ranking
-                markersize=6,    # 👈 como ranking
-                color=mapa_colores[nombre],
-                label=nombre
-            )
+            fig.add_trace(go.Scatter(
+                x=datos["hasta_jornada"],
+                y=datos["porcentaje_victorias"],
+                mode="lines+markers",
+                name=nombre,
+                line=dict(width=3),
+            ))
 
-        # Líneas verticales por jornada (más sutil aquí pero mismo estilo)
-        jornadas = sorted(ranking_jornada["hasta_jornada"].unique())
-
-        for j in jornadas:
-            ax.axvline(
-                x=j,
-                color="#30363d",
-                linewidth=1,
-                linestyle="--",
-                alpha=0.4
-            )
-
-        # Ejes
-        ax.set_xlabel("Jornada", color="#8b949e")
-        ax.set_ylabel("% Victorias", color="#8b949e")
-
-        ax.set_ylim(-5, 105)
-
-        ax.set_xticks(jornadas)
-        ax.tick_params(colors="#8b949e")
-
-        ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
-
-        ax.legend(
-            facecolor="#161b22",
-            edgecolor="#30363d",
-            labelcolor="#e6edf3",
-            fontsize=9
+        fig.update_layout(
+            title="% Victorias por jornada",
+            template="plotly_dark",
+            xaxis_title="Jornada",
+            yaxis_title="% Victorias",
+            yaxis=dict(range=[0, 100]),
+            height=500
         )
 
-        for spine in ax.spines.values():
-            spine.set_edgecolor("#30363d")
-
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        st.plotly_chart(fig, use_container_width=True)
 
     with tab4:
         top_diff = clasificacion.sort_values("diferencia_juegos", ascending=False)
-        fig, ax = plt.subplots(figsize=(10, 5))
-        fig.patch.set_facecolor("#0d1117")
-        ax.set_facecolor("#161b22")
-        colores_bar = ["#238636" if v >= 0 else "#da3633" for v in top_diff["diferencia_juegos"]]
-        ax.bar(top_diff["nombre"], top_diff["diferencia_juegos"], color=colores_bar, width=0.6)
-        for i, (idx, row) in enumerate(top_diff.iterrows()):
-            va = "bottom" if row["diferencia_juegos"] >= 0 else "top"
-            ax.text(i, row["diferencia_juegos"], str(int(row["diferencia_juegos"])),
-                    ha="center", va=va, color="#e6edf3", fontsize=10, fontweight="bold")
-        ax.axhline(0, color="#30363d", linewidth=1)
-        ax.set_ylabel("Diferencia de juegos", color="#8b949e")
-        ax.set_xticklabels(top_diff["nombre"], rotation=30, ha="right", color="#e6edf3")
-        ax.tick_params(colors="#8b949e")
-        ax.grid(axis="y", linestyle="--", alpha=0.3, color="#30363d")
-        for spine in ax.spines.values():
-            spine.set_edgecolor("#30363d")
-        plt.tight_layout()
-        st.pyplot(fig)
+
+        colores = [
+            "#238636" if v >= 0 else "#da3633"
+            for v in top_diff["diferencia_juegos"]
+        ]
+
+        fig = go.Figure()
+
+        fig.add_bar(
+            x=top_diff["nombre"],
+            y=top_diff["diferencia_juegos"],
+            marker_color=colores,
+            text=top_diff["diferencia_juegos"],
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            title="Diferencia de juegos",
+            template="plotly_dark",
+            xaxis_tickangle=30,
+            height=500
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
         ranking_partido = calcular_ranking_por_partido(df)
 
-        fig, ax = plt.subplots(figsize=(14, 6))
-        fig.patch.set_facecolor("#0d1117")
-        ax.set_facecolor("#161b22")
+        fig = go.Figure()
 
         for nombre in nombres:
-            datos = ranking_partido[ranking_partido["nombre"] == nombre].sort_values("hasta_partido")
+            datos = ranking_partido[
+                ranking_partido["nombre"] == nombre
+            ].sort_values("hasta_partido")
 
-            ax.plot(
-                datos["hasta_partido"],
-                datos["porcentaje_victorias"],
-                marker="o",
-                linewidth=2,
-                markersize=4,
-                color=mapa_colores[nombre],
-                label=nombre
-            )
+            fig.add_trace(go.Scatter(
+                x=datos["hasta_partido"],
+                y=datos["porcentaje_victorias"],
+                mode="lines+markers",
+                name=nombre,
+            ))
 
+        # Líneas de cambio de jornada
         jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
 
         for _, jrow in jornada_cambios.iterrows():
-            ax.axvline(
+            fig.add_vline(
                 x=jrow["hasta_partido"] - 0.5,
-                color="#30363d",
-                linewidth=1.6,
-                linestyle="--"
-            )
-            ax.text(
-                jrow["hasta_partido"] - 0.5,
-                -2,  # 👈 abajo del todo
-                f"J{int(jrow['id_jornada'])}",
-                color="#8b949e",
-                fontsize=7,
-                ha="center"
+                line_dash="dash",
+                line_color="gray"
             )
 
-        # Ejes
-        ax.set_xlabel("Nº partido acumulado", color="#8b949e")
-        ax.set_ylabel("% Victorias", color="#8b949e")
+            fig.add_annotation(
+                x=jrow["hasta_partido"] - 0.5,
+                y=0,
+                text=f"J{int(jrow['id_jornada'])}",
+                showarrow=False,
+                yshift=-10,
+                font=dict(size=9, color="gray")
+            )
 
-        ax.set_ylim(-5, 105)
-
-        ax.set_xticks(sorted(ranking_partido["hasta_partido"].unique()))
-        ax.tick_params(axis='x', labelsize=7, colors="#8b949e")
-        ax.tick_params(axis='y', colors="#8b949e")
-
-        ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
-
-        ax.legend(
-            facecolor="#161b22",
-            edgecolor="#30363d",
-            labelcolor="#e6edf3",
-            fontsize=9
+        fig.update_layout(
+            title="% Victorias por partido",
+            template="plotly_dark",
+            xaxis_title="Nº partido acumulado",
+            yaxis_title="% Victorias",
+            yaxis=dict(range=[0, 100]),
+            height=500
         )
 
-        for spine in ax.spines.values():
-            spine.set_edgecolor("#30363d")
-
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        st.plotly_chart(fig, use_container_width=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
