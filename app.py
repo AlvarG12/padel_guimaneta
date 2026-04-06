@@ -2032,21 +2032,44 @@ elif seccion == "💻 Predictor":
         """, unsafe_allow_html=True)
  
         # ── Barra visual ──
-        fig, ax = plt.subplots(figsize=(10, 1.6))
-        fig.patch.set_facecolor("#0d1117")
-        ax.set_facecolor("#0d1117")
-        ax.barh(0, pct1, color="#1f6feb", height=0.5)
-        ax.barh(0, pct2, left=pct1, color="#da3633", height=0.5)
-        ax.text(pct1 / 2, 0, f"{nombre_eq1}\n{pct1}%",
-                ha="center", va="center", color="white", fontsize=10, fontweight="bold")
-        ax.text(pct1 + pct2 / 2, 0, f"{nombre_eq2}\n{pct2}%",
-                ha="center", va="center", color="white", fontsize=10, fontweight="bold")
-        ax.set_xlim(0, 100)
-        ax.axis("off")
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
- 
+        fig = go.Figure()
+
+        # Equipo 1
+        fig.add_trace(go.Bar(
+            x=[pct1],
+            y=[""],
+            orientation="h",
+            name=nombre_eq1,
+            marker_color="#1f6feb",
+            text=f"{nombre_eq1} {pct1}%",
+            textposition="inside",
+            hovertemplate=f"{nombre_eq1}<br>%{{x}}%<extra></extra>"
+        ))
+
+        # Equipo 2
+        fig.add_trace(go.Bar(
+            x=[pct2],
+            y=[""],
+            orientation="h",
+            name=nombre_eq2,
+            marker_color="#da3633",
+            text=f"{nombre_eq2} {pct2}%",
+            textposition="inside",
+            hovertemplate=f"{nombre_eq2}<br>%{{x}}%<extra></extra>"
+        ))
+
+        fig.update_layout(
+            barmode="stack",
+            template="plotly_dark",
+            showlegend=False,
+            xaxis=dict(range=[0, 100], title="% victorias"),
+            yaxis=dict(visible=False),
+            height=120,
+            margin=dict(l=10, r=10, t=10, b=10)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
         st.divider()
 
         # ── Desglose por factor ──
