@@ -2879,7 +2879,9 @@ elif seccion == "🔐 Admin":
 
     st.divider()
 
+    # ─────────────────────────────────────────
     # FUNCIÓN GITHUB
+    # ─────────────────────────────────────────
 
     def subir_a_github(path, contenido, mensaje):
         token = st.secrets["github_token"]
@@ -2903,10 +2905,15 @@ elif seccion == "🔐 Admin":
 
         requests.put(url, json=data, headers={"Authorization": f"token {token}"})
 
+    # ─────────────────────────────────────────
     # TABS ADMIN
+    # ─────────────────────────────────────────
+
     tab_add, tab_edit, tab_delete = st.tabs(["➕ Añadir Partido", "✏️ Editar Partido", "🗑️ Borrar Partido"])
 
+    # ═════════════════════════════════════════════════════════════════════════
     # TAB 1: AÑADIR PARTIDO
+    # ═════════════════════════════════════════════════════════════════════════
     with tab_add:
         st.markdown("### 🎾 Nuevo Partido")
 
@@ -2955,9 +2962,9 @@ elif seccion == "🔐 Admin":
         if submit_add:
 
             try:
-                partidos_local = pd.read_csv("data/partidos_25_26.csv")
-                pj_local = pd.read_csv("data/partido_jugadores_25_26.csv")
-                jugadores_local = pd.read_csv("data/jugadores.csv")
+                partidos_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
+                pj_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
+                jugadores_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/jugadores.csv")
 
                 mapa = dict(zip(jugadores_local["nombre"], jugadores_local["id_jugador"]))
 
@@ -3008,7 +3015,9 @@ elif seccion == "🔐 Admin":
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
+    # ═════════════════════════════════════════════════════════════════════════
     # TAB 2: EDITAR PARTIDO
+    # ═════════════════════════════════════════════════════════════════════════
     with tab_edit:
         st.markdown("### ✏️ Editar Partido")
 
@@ -3017,11 +3026,11 @@ elif seccion == "🔐 Admin":
             partidos_edit_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
             pj_edit_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
             jugadores_edit_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/jugadores.csv")
-        except:
-            st.error("❌ Error al cargar datos")
+        except Exception as e:
+            st.error(f"❌ Error al cargar datos: {e}")
             st.stop()
 
-        # ───── selector de temporada ─────
+        # Asegurar columna temporada
         if "temporada" not in partidos_edit_df.columns:
             partidos_edit_df["temporada"] = "25_26"
         if "temporada" not in pj_edit_df.columns:
@@ -3051,10 +3060,10 @@ elif seccion == "🔐 Admin":
             key="edit_select"
         )
 
-        # 🔍 cargar datos del partido
+        # Cargar datos del partido
         partido_actual = partidos_filtrados_edit[partidos_filtrados_edit["id_partido"] == partido_a_editar].iloc[0]
         
-        # Obtener jugadores del partido (filtrando correctamente por id_partido Y temporada)
+        # Obtener jugadores del partido
         pj_partido = pj_edit_df[
             (pj_edit_df["id_partido"] == partido_a_editar) &
             (pj_edit_df["temporada"] == temporada_edit)
@@ -3104,7 +3113,7 @@ elif seccion == "🔐 Admin":
 
         st.markdown("---")
 
-        # JUGADORES - Lógica simplificada
+        # JUGADORES
         col1_edit, col2_edit = st.columns(2)
 
         with col1_edit:
@@ -3199,7 +3208,7 @@ elif seccion == "🔐 Admin":
                 partidos_local.loc[mask_partido, "equipo_ganador"] = ganador_edit
                 partidos_local.loc[mask_partido, "comentario"] = comentario_edit
 
-                # Actualizar partido_jugadores (borrar los de este partido y recrear)
+                # Actualizar partido_jugadores
                 mask_pj = (pj_local["id_partido"] == partido_a_editar) & (pj_local["temporada"] == temporada_edit)
                 pj_local = pj_local[~mask_pj]
 
@@ -3235,10 +3244,10 @@ elif seccion == "🔐 Admin":
 
             except Exception as e:
                 st.error(f"❌ Error al editar: {e}")
-                import traceback
-                st.code(traceback.format_exc())
 
+    # ═════════════════════════════════════════════════════════════════════════
     # TAB 3: BORRAR PARTIDO
+    # ═════════════════════════════════════════════════════════════════════════
     with tab_delete:
         st.markdown("### 🗑️ Borrar partido")
 
@@ -3246,8 +3255,8 @@ elif seccion == "🔐 Admin":
         try:
             partidos_del_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
             pj_del_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
-        except:
-            st.error("❌ Error al cargar datos")
+        except Exception as e:
+            st.error(f"❌ Error al cargar datos: {e}")
             st.stop()
 
         # Asegurar columna temporada
@@ -3256,7 +3265,6 @@ elif seccion == "🔐 Admin":
         if "temporada" not in pj_del_df.columns:
             pj_del_df["temporada"] = "25_26"
 
-        # ───── selector de temporada ─────
         temporadas_del = sorted(partidos_del_df["temporada"].unique())
 
         temporada_del = st.selectbox(
@@ -3265,7 +3273,7 @@ elif seccion == "🔐 Admin":
             key="del_temp"
         )
 
-        # filtrar por temporada
+        # Filtrar por temporada
         partidos_filtrados_del = partidos_del_df[partidos_del_df["temporada"] == temporada_del].copy()
         partidos_filtrados_del = partidos_filtrados_del.sort_values("id_partido", ascending=False)
 
@@ -3281,7 +3289,7 @@ elif seccion == "🔐 Admin":
             key="del_select"
         )
 
-        # 🔍 preview
+        # Preview
         preview = partidos_filtrados_del[partidos_filtrados_del["id_partido"] == partido_a_borrar]
 
         st.markdown("#### 👀 Partido seleccionado")
@@ -3292,7 +3300,7 @@ elif seccion == "🔐 Admin":
         if st.button("❌ Borrar partido", use_container_width=True, type="primary") and confirmar_del:
 
             try:
-                # cargar datos reales
+                # Cargar datos reales
                 partidos_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
                 pj_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
 
@@ -3302,7 +3310,7 @@ elif seccion == "🔐 Admin":
                 if "temporada" not in pj_local.columns:
                     pj_local["temporada"] = "25_26"
 
-                # Borrar partido (con temporada)
+                # Borrar partido
                 mask_partido = (partidos_local["id_partido"] == partido_a_borrar) & (partidos_local["temporada"] == temporada_del)
                 partidos_local = partidos_local[~mask_partido]
 
@@ -3310,7 +3318,7 @@ elif seccion == "🔐 Admin":
                 mask_pj = (pj_local["id_partido"] == partido_a_borrar) & (pj_local["temporada"] == temporada_del)
                 pj_local = pj_local[~mask_pj]
 
-                # subir a github
+                # Subir a github
                 partidos_csv = partidos_local.to_csv(index=False)
                 pj_csv = pj_local.to_csv(index=False)
 
@@ -3333,5 +3341,3 @@ elif seccion == "🔐 Admin":
 
             except Exception as e:
                 st.error(f"❌ Error al borrar: {e}")
-                import traceback
-                st.code(traceback.format_exc())
