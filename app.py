@@ -1388,15 +1388,15 @@ elif seccion == "👤 Perfil Jugador":
 
             fig.update_xaxes(title="Partido")
 
-        jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
+            jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
 
-        for _, jrow in jornada_cambios.iterrows():
-            fig.add_vline(
-                x=jrow["hasta_partido"] - 0.5,
-                line_dash="dash",
-                line_color="#444",
-                opacity=0.8
-            )
+            for _, jrow in jornada_cambios.iterrows():
+                fig.add_vline(
+                    x=jrow["hasta_partido"] - 0.5,
+                    line_dash="dash",
+                    line_color="#444",
+                    opacity=0.8
+                )
 
         fig.update_layout(
             template="plotly_dark",
