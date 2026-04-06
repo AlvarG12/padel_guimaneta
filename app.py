@@ -1368,29 +1368,26 @@ elif seccion == "👤 Perfil Jugador":
             fig.update_xaxes(title="Jornada")
 
         else:
-        datos = ranking_partido[
-            ranking_partido["nombre"] == nombre_sel
-        ].sort_values("hasta_partido")
+            datos = ranking_partido[
+                ranking_partido["nombre"] == nombre_sel
+            ].sort_values("hasta_partido")
 
-        fig.add_trace(go.Scatter(
-            x=datos["hasta_partido"],
-            y=datos["rank"],
-            mode="lines+markers",
-            line=dict(color="#238636", width=3),
-            marker=dict(size=6),
-            fill="tozeroy",
-            fillcolor="rgba(35,134,54,0.15)",
-            hovertemplate=(
-                "Partido: %{x}<br>"
-                "Posición: %{y}<extra></extra>"
-            )
-        ))
+            fig.add_trace(go.Scatter(
+                x=datos["hasta_partido"],
+                y=datos["rank"],
+                mode="lines+markers",
+                line=dict(color="#238636", width=3),
+                marker=dict(size=6),
+                fill="tozeroy",
+                fillcolor="rgba(35,134,54,0.15)",
+                hovertemplate=(
+                    "Partido: %{x}<br>"
+                    "Posición: %{y}<extra></extra>"
+                )
+            ))
 
-        fig.update_xaxes(title="Partido")
+            fig.update_xaxes(title="Partido")
 
-        # ─────────────────────────────
-        # 🔥 LÍNEAS DE SEPARACIÓN DE JORNADAS
-        # ─────────────────────────────
         jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
 
         for _, jrow in jornada_cambios.iterrows():
