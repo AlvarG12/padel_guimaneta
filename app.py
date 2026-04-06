@@ -1310,7 +1310,9 @@ elif seccion == "📋 Detalle":
 # SECCIÓN: PERFIL JUGADOR
 # ─────────────────────────────────────────────────────────────────────────────
 elif seccion == "👤 Perfil Jugador":
+
     st.markdown("## 👤 Perfil de Jugador")
+
     nombre_sel = st.selectbox(
         "Selecciona jugador",
         nombres
@@ -1327,9 +1329,11 @@ elif seccion == "👤 Perfil Jugador":
     col5.metric("📈 % Victorias", f"{fila['porcentaje_victorias']}%")
 
     st.divider()
+
     col_a, col_b = st.columns(2)
 
     with col_a:
+
         st.markdown("#### Evolución del ranking")
 
         modo_rank = st.radio(
@@ -1338,79 +1342,88 @@ elif seccion == "👤 Perfil Jugador":
             horizontal=True
         )
 
+        fig = go.Figure()
+
         if modo_rank == "🗓️ Jornada":
-            datos_jugador = ranking_jornada[
+
+            datos = ranking_jornada[
                 ranking_jornada["nombre"] == nombre_sel
             ].sort_values("hasta_jornada")
 
-            x = datos_jugador["hasta_jornada"]
-            y = datos_jugador["rank"]
-            xlabel = "Jornada"
+            fig.add_trace(go.Scatter(
+                x=datos["hasta_jornada"],
+                y=datos["rank"],
+                mode="lines+markers",
+                line=dict(color="#238636", width=3),
+                marker=dict(size=7),
+                fill="tozeroy",
+                fillcolor="rgba(35,134,54,0.15)",
+                hovertemplate=(
+                    "Jornada: %{x}<br>"
+                    "Posición: %{y}<extra></extra>"
+                )
+            ))
+
+            fig.update_xaxes(title="Jornada")
 
         else:
-            datos_jugador = ranking_partido[
+
+            datos = ranking_partido[
                 ranking_partido["nombre"] == nombre_sel
             ].sort_values("hasta_partido")
 
-            x = datos_jugador["hasta_partido"]
-            y = datos_jugador["rank"]
-            xlabel = "Partido"
+            fig.add_trace(go.Scatter(
+                x=datos["hasta_partido"],
+                y=datos["rank"],
+                mode="lines+markers",
+                line=dict(color="#238636", width=3),
+                marker=dict(size=6),
+                fill="tozeroy",
+                fillcolor="rgba(35,134,54,0.15)",
+                hovertemplate=(
+                    "Partido: %{x}<br>"
+                    "Posición: %{y}<extra></extra>"
+                )
+            ))
 
-        fig, ax = plt.subplots(figsize=(7, 4))
-        fig.patch.set_facecolor("#0d1117")
-        ax.set_facecolor("#161b22")
+            fig.update_xaxes(title="Partido")
 
-        ax.plot(
-            x, y,
-            marker="o",
-            linewidth=2,
-            markersize=3,
-            color="#238636"
+        fig.update_yaxes(
+            autorange="reversed",
+            title="Posición",
+            dtick=1
         )
 
-        ax.fill_between(x, y, alpha=0.15, color="#238636")
+        fig.update_layout(
+            template="plotly_dark",
+            height=350,
+            hovermode="closest",
+            margin=dict(l=20, r=20, t=20, b=20)
+        )
 
-        ax.invert_yaxis()
-
-        ax.set_xlabel(xlabel, color="#8b949e")
-        ax.set_ylabel("Posición", color="#8b949e")
-
-        if modo_rank == "🗓️ Jornada":
-            ax.set_xticks(sorted(x.unique()))
-        else:
-            ax.set_xticks([])
-        ax.set_yticks(range(1, ranking_jornada["rank"].max() + 1))
-
-        ax.tick_params(colors="#8b949e")
-        ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
-
-        for spine in ax.spines.values():
-            spine.set_edgecolor("#30363d")
-
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        st.plotly_chart(fig, use_container_width=True)
 
     with col_b:
+
         st.markdown("#### Victorias vs Derrotas")
-        fig, ax = plt.subplots(figsize=(5, 4))
-        fig.patch.set_facecolor("#0d1117")
-        ax.set_facecolor("#161b22")
-        vals = [int(fila["victorias"]), int(fila["derrotas"])]
-        labels = ["Victorias", "Derrotas"]
-        colors = ["#238636", "#da3633"]
-        wedges, texts, autotexts = ax.pie(
-            vals, labels=labels, colors=colors,
-            autopct="%1.0f%%", startangle=90,
-            textprops={"color": "#e6edf3"},
-            wedgeprops={"linewidth": 2, "edgecolor": "#0d1117"}
+
+        fig = go.Figure(data=[
+            go.Pie(
+                labels=["Victorias", "Derrotas"],
+                values=[int(fila["victorias"]), int(fila["derrotas"])],
+                marker=dict(colors=["#238636", "#da3633"]),
+                hole=0.4,
+                hoverinfo="label+percent"
+            )
+        ])
+
+        fig.update_layout(
+            template="plotly_dark",
+            height=350,
+            margin=dict(l=10, r=10, t=10, b=10)
         )
-        for at in autotexts:
-            at.set_fontsize(13)
-            at.set_fontweight("bold")
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+
+        st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
     st.markdown("#### ⚔️ Enfrentamientos directos")
