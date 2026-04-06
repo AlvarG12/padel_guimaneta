@@ -3012,10 +3012,22 @@ elif seccion == "🔐 Admin":
     with tab_edit:
         st.markdown("### ✏️ Editar Partido")
 
-        partidos_df = partidos.copy()
+        # Cargar datos frescos
+        try:
+            partidos_edit_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
+            pj_edit_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
+            jugadores_edit_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/jugadores.csv")
+        except:
+            st.error("❌ Error al cargar datos")
+            st.stop()
 
         # ───── selector de temporada ─────
-        temporadas_edit = sorted(partidos_df["temporada"].unique()) if "temporada" in partidos_df.columns else ["25_26"]
+        if "temporada" not in partidos_edit_df.columns:
+            partidos_edit_df["temporada"] = "25_26"
+        if "temporada" not in pj_edit_df.columns:
+            pj_edit_df["temporada"] = "25_26"
+
+        temporadas_edit = sorted(partidos_edit_df["temporada"].unique())
 
         temporada_edit = st.selectbox(
             "Selecciona temporada",
@@ -3023,13 +3035,13 @@ elif seccion == "🔐 Admin":
             key="edit_temp"
         )
 
-        # filtrar por temporada
-        if "temporada" in partidos_df.columns:
-            partidos_filtrados_edit = partidos_df[partidos_df["temporada"] == temporada_edit].copy()
-        else:
-            partidos_filtrados_edit = partidos_df.copy()
-
+        # Filtrar partidos por temporada
+        partidos_filtrados_edit = partidos_edit_df[partidos_edit_df["temporada"] == temporada_edit].copy()
         partidos_filtrados_edit = partidos_filtrados_edit.sort_values("id_partido", ascending=False)
+
+        if partidos_filtrados_edit.empty:
+            st.warning("No hay partidos en esta temporada")
+            st.stop()
 
         lista_partidos_edit = partidos_filtrados_edit["id_partido"].tolist()
 
@@ -3042,16 +3054,22 @@ elif seccion == "🔐 Admin":
         # 🔍 cargar datos del partido
         partido_actual = partidos_filtrados_edit[partidos_filtrados_edit["id_partido"] == partido_a_editar].iloc[0]
         
-        # obtener jugadores del partido
-        pj_partido = partido_jugadores[partido_jugadores["id_partido"].astype(str).str.startswith(str(partido_a_editar))].copy()
+        # Obtener jugadores del partido (filtrando correctamente por id_partido Y temporada)
+        pj_partido = pj_edit_df[
+            (pj_edit_df["id_partido"] == partido_a_editar) &
+            (pj_edit_df["temporada"] == temporada_edit)
+        ].copy()
         
-        jugadores_eq1 = pj_partido[pj_partido["equipo"] == 1].merge(
-            jugadores[["id_jugador", "nombre"]], on="id_jugador"
-        )["nombre"].tolist()
+        # Merge con jugadores para obtener nombres
+        pj_partido = pj_partido.merge(jugadores_edit_df[["id_jugador", "nombre"]], on="id_jugador")
         
-        jugadores_eq2 = pj_partido[pj_partido["equipo"] == 2].merge(
-            jugadores[["id_jugador", "nombre"]], on="id_jugador"
-        )["nombre"].tolist()
+        jugadores_eq1 = pj_partido[pj_partido["equipo"] == 1]["nombre"].tolist()
+        jugadores_eq2 = pj_partido[pj_partido["equipo"] == 2]["nombre"].tolist()
+
+        # Validación
+        if len(jugadores_eq1) != 2 or len(jugadores_eq2) != 2:
+            st.error(f"❌ Partido mal formado: Equipo 1 tiene {len(jugadores_eq1)} jugadores, Equipo 2 tiene {len(jugadores_eq2)}")
+            st.stop()
 
         st.divider()
 
@@ -3075,45 +3093,58 @@ elif seccion == "🔐 Admin":
         with col_info2_edit:
             sede_edit = st.text_input(
                 "Sede",
-                value=partido_actual["sede"] if "sede" in partido_actual and pd.notna(partido_actual["sede"]) else "",
+                value=str(partido_actual["sede"]) if "sede" in partido_actual and pd.notna(partido_actual["sede"]) else "",
                 key="edit_sede"
             )
             comentario_edit = st.text_input(
                 "Comentario del partido (opcional)",
-                value=partido_actual["comentario"] if "comentario" in partido_actual and pd.notna(partido_actual["comentario"]) else "",
+                value=str(partido_actual["comentario"]) if "comentario" in partido_actual and pd.notna(partido_actual["comentario"]) else "",
                 key="edit_comentario"
             )
 
         st.markdown("---")
 
-        # JUGADORES
+        # JUGADORES - Lógica simplificada
         col1_edit, col2_edit = st.columns(2)
 
         with col1_edit:
+            # Jugador 1
+            idx_j1 = nombres.index(jugadores_eq1[0]) if jugadores_eq1[0] in nombres else 0
             j1_edit = st.selectbox(
                 "Jugador 1 (Equipo 1)",
                 nombres,
-                index=nombres.index(jugadores_eq1[0]) if len(jugadores_eq1) > 0 else 0,
+                index=idx_j1,
                 key="edit_j1"
             )
+            
+            # Jugador 2
+            opciones_j2 = [j for j in nombres if j != j1_edit]
+            idx_j2 = opciones_j2.index(jugadores_eq1[1]) if jugadores_eq1[1] in opciones_j2 else 0
             j2_edit = st.selectbox(
                 "Jugador 2 (Equipo 1)",
-                [j for j in nombres if j != j1_edit],
-                index=[j for j in nombres if j != j1_edit].index(jugadores_eq1[1]) if len(jugadores_eq1) > 1 else 0,
+                opciones_j2,
+                index=idx_j2,
                 key="edit_j2"
             )
 
         with col2_edit:
+            # Jugador 3
+            opciones_j3 = [j for j in nombres if j not in [j1_edit, j2_edit]]
+            idx_j3 = opciones_j3.index(jugadores_eq2[0]) if jugadores_eq2[0] in opciones_j3 else 0
             j3_edit = st.selectbox(
                 "Jugador 3 (Equipo 2)",
-                [j for j in nombres if j not in [j1_edit, j2_edit]],
-                index=[j for j in nombres if j not in [j1_edit, j2_edit]].index(jugadores_eq2[0]) if len(jugadores_eq2) > 0 else 0,
+                opciones_j3,
+                index=idx_j3,
                 key="edit_j3"
             )
+            
+            # Jugador 4
+            opciones_j4 = [j for j in nombres if j not in [j1_edit, j2_edit, j3_edit]]
+            idx_j4 = opciones_j4.index(jugadores_eq2[1]) if jugadores_eq2[1] in opciones_j4 else 0
             j4_edit = st.selectbox(
                 "Jugador 4 (Equipo 2)",
-                [j for j in nombres if j not in [j1_edit, j2_edit, j3_edit]],
-                index=[j for j in nombres if j not in [j1_edit, j2_edit, j3_edit]].index(jugadores_eq2[1]) if len(jugadores_eq2) > 1 else 0,
+                opciones_j4,
+                index=idx_j4,
                 key="edit_j4"
             )
 
@@ -3142,17 +3173,24 @@ elif seccion == "🔐 Admin":
         if st.button("💾 Guardar cambios", use_container_width=True, type="primary") and confirmar_edit:
 
             try:
-                # cargar datos reales
-                partidos_local = pd.read_csv("data/partidos_25_26.csv")
-                pj_local = pd.read_csv("data/partido_jugadores_25_26.csv")
-                jugadores_local = pd.read_csv("data/jugadores.csv")
+                # Cargar datos reales
+                partidos_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
+                pj_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
+                jugadores_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/jugadores.csv")
+
+                # Asegurar columna temporada
+                if "temporada" not in partidos_local.columns:
+                    partidos_local["temporada"] = "25_26"
+                if "temporada" not in pj_local.columns:
+                    pj_local["temporada"] = "25_26"
 
                 mapa = dict(zip(jugadores_local["nombre"], jugadores_local["id_jugador"]))
 
-                # actualizar partido
+                # Actualizar partido
                 ganador_edit = 1 if score1_edit > score2_edit else 2
 
-                mask_partido = partidos_local["id_partido"] == partido_a_editar
+                mask_partido = (partidos_local["id_partido"] == partido_a_editar) & (partidos_local["temporada"] == temporada_edit)
+                
                 partidos_local.loc[mask_partido, "id_jornada"] = jornada_edit
                 partidos_local.loc[mask_partido, "fecha"] = str(fecha_edit)
                 partidos_local.loc[mask_partido, "sede"] = sede_edit
@@ -3161,19 +3199,20 @@ elif seccion == "🔐 Admin":
                 partidos_local.loc[mask_partido, "equipo_ganador"] = ganador_edit
                 partidos_local.loc[mask_partido, "comentario"] = comentario_edit
 
-                # actualizar partido_jugadores (borrar y recrear)
-                pj_local = pj_local[pj_local["id_partido"] != partido_a_editar]
+                # Actualizar partido_jugadores (borrar los de este partido y recrear)
+                mask_pj = (pj_local["id_partido"] == partido_a_editar) & (pj_local["temporada"] == temporada_edit)
+                pj_local = pj_local[~mask_pj]
 
                 nuevos_pj_edit = [
-                    {"id_partido": partido_a_editar, "id_jugador": mapa[j1_edit], "equipo": 1},
-                    {"id_partido": partido_a_editar, "id_jugador": mapa[j2_edit], "equipo": 1},
-                    {"id_partido": partido_a_editar, "id_jugador": mapa[j3_edit], "equipo": 2},
-                    {"id_partido": partido_a_editar, "id_jugador": mapa[j4_edit], "equipo": 2},
+                    {"id_partido": partido_a_editar, "id_jugador": mapa[j1_edit], "equipo": 1, "temporada": temporada_edit},
+                    {"id_partido": partido_a_editar, "id_jugador": mapa[j2_edit], "equipo": 1, "temporada": temporada_edit},
+                    {"id_partido": partido_a_editar, "id_jugador": mapa[j3_edit], "equipo": 2, "temporada": temporada_edit},
+                    {"id_partido": partido_a_editar, "id_jugador": mapa[j4_edit], "equipo": 2, "temporada": temporada_edit},
                 ]
 
                 pj_local = pd.concat([pj_local, pd.DataFrame(nuevos_pj_edit)], ignore_index=True)
 
-                # subir a github
+                # Subir a github
                 partidos_csv = partidos_local.to_csv(index=False)
                 pj_csv = pj_local.to_csv(index=False)
 
@@ -3196,15 +3235,29 @@ elif seccion == "🔐 Admin":
 
             except Exception as e:
                 st.error(f"❌ Error al editar: {e}")
+                import traceback
+                st.code(traceback.format_exc())
 
     # TAB 3: BORRAR PARTIDO
     with tab_delete:
         st.markdown("### 🗑️ Borrar partido")
 
-        partidos_df = partidos.copy()
+        # Cargar datos frescos
+        try:
+            partidos_del_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
+            pj_del_df = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
+        except:
+            st.error("❌ Error al cargar datos")
+            st.stop()
+
+        # Asegurar columna temporada
+        if "temporada" not in partidos_del_df.columns:
+            partidos_del_df["temporada"] = "25_26"
+        if "temporada" not in pj_del_df.columns:
+            pj_del_df["temporada"] = "25_26"
 
         # ───── selector de temporada ─────
-        temporadas_del = sorted(partidos_df["temporada"].unique()) if "temporada" in partidos_df.columns else ["25_26"]
+        temporadas_del = sorted(partidos_del_df["temporada"].unique())
 
         temporada_del = st.selectbox(
             "Selecciona temporada",
@@ -3213,12 +3266,12 @@ elif seccion == "🔐 Admin":
         )
 
         # filtrar por temporada
-        if "temporada" in partidos_df.columns:
-            partidos_filtrados_del = partidos_df[partidos_df["temporada"] == temporada_del].copy()
-        else:
-            partidos_filtrados_del = partidos_df.copy()
-
+        partidos_filtrados_del = partidos_del_df[partidos_del_df["temporada"] == temporada_del].copy()
         partidos_filtrados_del = partidos_filtrados_del.sort_values("id_partido", ascending=False)
+
+        if partidos_filtrados_del.empty:
+            st.warning("No hay partidos en esta temporada")
+            st.stop()
 
         lista_partidos_del = partidos_filtrados_del["id_partido"].tolist()
 
@@ -3240,27 +3293,22 @@ elif seccion == "🔐 Admin":
 
             try:
                 # cargar datos reales
-                partidos_local = pd.read_csv("data/partidos_25_26.csv")
-                pj_local = pd.read_csv("data/partido_jugadores_25_26.csv")
+                partidos_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partidos_25_26.csv")
+                pj_local = leer_csv_github("AlvarG12/padel_guimaneta", "data/partido_jugadores_25_26.csv")
 
-                # si existe temporada, respetarla
-                if "temporada" in partidos_local.columns:
-                    mask = ~(
-                        (partidos_local["id_partido"] == partido_a_borrar) &
-                        (partidos_local["temporada"] == temporada_del)
-                    )
-                    partidos_local = partidos_local[mask]
-                else:
-                    partidos_local = partidos_local[partidos_local["id_partido"] != partido_a_borrar]
+                # Asegurar columna temporada
+                if "temporada" not in partidos_local.columns:
+                    partidos_local["temporada"] = "25_26"
+                if "temporada" not in pj_local.columns:
+                    pj_local["temporada"] = "25_26"
 
-                # borrar en PJ igual
-                if "temporada" in pj_local.columns:
-                    pj_local = pj_local[~(
-                        (pj_local["id_partido"] == partido_a_borrar) &
-                        (pj_local["temporada"] == temporada_del)
-                    )]
-                else:
-                    pj_local = pj_local[pj_local["id_partido"] != partido_a_borrar]
+                # Borrar partido (con temporada)
+                mask_partido = (partidos_local["id_partido"] == partido_a_borrar) & (partidos_local["temporada"] == temporada_del)
+                partidos_local = partidos_local[~mask_partido]
+
+                # Borrar en PJ
+                mask_pj = (pj_local["id_partido"] == partido_a_borrar) & (pj_local["temporada"] == temporada_del)
+                pj_local = pj_local[~mask_pj]
 
                 # subir a github
                 partidos_csv = partidos_local.to_csv(index=False)
@@ -3285,3 +3333,5 @@ elif seccion == "🔐 Admin":
 
             except Exception as e:
                 st.error(f"❌ Error al borrar: {e}")
+                import traceback
+                st.code(traceback.format_exc())
