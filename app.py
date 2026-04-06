@@ -1388,19 +1388,25 @@ elif seccion == "👤 Perfil Jugador":
 
             fig.update_xaxes(title="Partido")
 
-        # Fijar eje Y desde 1 hasta max_rank + padding
-        fig.update_yaxes(
-            autorange="reversed",
-            title="Posición",
-            dtick=1,  # mostrar todos los números
-            range=[0.5, max_rank + 0.5]  # padding arriba y abajo
-        )
-
         fig.update_layout(
             template="plotly_dark",
             height=350,
             hovermode="closest",
             margin=dict(l=20, r=20, t=20, b=20)
+        )
+
+        max_rank = max(
+            ranking_jornada["rank"].max(),
+            ranking_partido["rank"].max()
+        )
+
+        fig.update_yaxes(
+            autorange="reversed",
+            title="Posición",
+            tickmode="linear",
+            tick0=1,
+            dtick=1,
+            range=[max_rank + 0.5, 0.5]  # invertido manualmente para asegurar ticks
         )
 
         st.plotly_chart(fig, use_container_width=True)
