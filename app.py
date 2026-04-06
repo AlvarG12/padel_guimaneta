@@ -1062,7 +1062,6 @@ if seccion == "🏆 Clasificación":
     st.divider()
     st.markdown("## 📈 Evolución del Ranking")
 
-    # Toggle jornada / partido
     vista_ranking = st.radio(
         "Ver evolución por:",
         ["🗓️ Jornada", "🎾 Partido"],
@@ -1070,7 +1069,30 @@ if seccion == "🏆 Clasificación":
         key="vista_ranking"
     )
 
+    # selector de jugador (CLAVE)
+    jugador_sel = st.selectbox(
+        "🎯 Seleccionar jugador (opcional)",
+        ["Todos"] + nombres,
+        key="jugador_rank_sel"
+    )
+
     fig = go.Figure()
+
+    def add_trace(nombre, datos, x_col):
+        fig.add_trace(go.Scatter(
+            x=datos[x_col],
+            y=datos["rank"],
+            mode="lines+markers",
+            name=nombre,
+            line=dict(width=3),
+            marker=dict(size=7),
+            opacity=1 if jugador_sel in ["Todos", nombre] else 0.15,
+            hovertemplate=(
+                f"{nombre}<br>"
+                f"{x_col}: %{{x}}<br>"
+                "Posición: %{y}<extra></extra>"
+            )
+        ))
 
     if vista_ranking == "🗓️ Jornada":
 
@@ -1079,26 +1101,9 @@ if seccion == "🏆 Clasificación":
                 ranking_jornada["nombre"] == nombre
             ].sort_values("hasta_jornada")
 
-            fig.add_trace(go.Scatter(
-                x=datos["hasta_jornada"],
-                y=datos["rank"],
-                mode="lines+markers",
-                name=nombre,
-                line=dict(width=3),
-                hovertemplate=(
-                    f"{nombre}<br>"
-                    "Jornada: %{x}<br>"
-                    "Posición: %{y}<extra></extra>"
-                )
-            ))
+            add_trace(nombre, datos, "hasta_jornada")
 
-        fig.update_xaxes(
-            tickmode="array",
-            tickvals=sorted(ranking_jornada["hasta_jornada"].unique()),
-            title="Jornada"
-        )
-
-        n_jugadores = ranking_jornada["rank"].max()
+        fig.update_xaxes(title="Jornada")
 
     else:
 
@@ -1107,18 +1112,7 @@ if seccion == "🏆 Clasificación":
                 ranking_partido["nombre"] == nombre
             ].sort_values("hasta_partido")
 
-            fig.add_trace(go.Scatter(
-                x=datos["hasta_partido"],
-                y=datos["rank"],
-                mode="lines+markers",
-                name=nombre,
-                line=dict(width=3),
-                hovertemplate=(
-                    f"{nombre}<br>"
-                    "Partido: %{x}<br>"
-                    "Posición: %{y}<extra></extra>"
-                )
-            ))
+            add_trace(nombre, datos, "hasta_partido")
 
         # líneas de jornada
         jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
@@ -1130,37 +1124,22 @@ if seccion == "🏆 Clasificación":
                 line_color="#444"
             )
 
-            fig.add_annotation(
-                x=jrow["hasta_partido"] - 0.5,
-                y=1,
-                text=f"J{int(jrow['id_jornada'])}",
-                showarrow=False,
-                yref="paper",
-                font=dict(size=10, color="#8b949e")
-            )
+        fig.update_xaxes(title="Nº partido acumulado")
 
-        fig.update_xaxes(
-            tickmode="array",
-            tickvals=sorted(ranking_partido["hasta_partido"].unique()),
-            title="Nº partido acumulado"
-        )
-
-        n_jugadores = ranking_partido["rank"].max()
-
-    # 🔥 estilo ranking (invertido)
+    # 🔥 ranking invertido
     fig.update_yaxes(
         autorange="reversed",
         title="Posición",
-        tickmode="linear",
         dtick=1
     )
 
     fig.update_layout(
         template="plotly_dark",
         height=600,
-        hovermode="x unified",
+        hovermode="closest",  # 👈 clave para selección punto a punto
         legend=dict(
-            bgcolor="rgba(0,0,0,0.3)"
+            itemclick="toggle",
+            itemdoubleclick="toggleothers"
         )
     )
 
