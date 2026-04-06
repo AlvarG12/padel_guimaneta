@@ -1026,38 +1026,58 @@ if seccion == "🏆 Clasificación":
     st.divider()
     st.markdown("## 🏆 Clasificación General")
 
-    # Tabla de clasificación estilizada
     tabla = clasificacion[[
         "nombre", "partidos_jugados", "victorias", "derrotas",
         "diferencia_juegos", "juegos_ganados", "juegos_perdidos",
         "porcentaje_victorias", "jornadas"
     ]].copy()
 
-    tabla.columns = ["Jugador", "PJ", "V", "D", "+/-", "JG", "JP", "% V", "Jornadas"]
+    tabla.columns = [
+        "Jugador", "PJ", "V", "D",
+        "+/-", "JG", "JP", "% V", "Jornadas"
+    ]
 
-    # FUNCIONES DE COLOR SUAVE TIPO GRADIENTE
-    def color_top(nombre, rank):
-        if rank == 1:  # 🥇
-            return "background-color: rgba(255, 215, 0, 0.15); color: #FFD700; font-weight: 600;"
-        elif rank == 2:  # 🥈
-            return "background-color: rgba(192, 192, 192, 0.12); color: #C0C0C0; font-weight: 600;"
-        elif rank == 3:  # 🥉
-            return "background-color: rgba(205, 127, 50, 0.12); color: #CD7F32; font-weight: 600;"
-        return ""
+    # ordenar por ranking (IMPORTANTE)
+    tabla = tabla.reset_index(drop=True)
 
-    # Aplicar estilo correctamente usando el índice REAL de la tabla
-    def estilo_fila(row):
-        rank = row.name  # posición real en el DataFrame ya ordenado
-        return [color_top(row["Jugador"], rank)] * len(row)
+    fill_colors = []
 
-    st.dataframe(
-        tabla.style
-        .apply(estilo_fila, axis=1)
-        .background_gradient(subset=["% V"], cmap="RdYlGn", vmin=0, vmax=100)
-        .format({"% V": "{:.2f}%"}),
-        use_container_width=True,
-        height=320
+    for i in range(len(tabla)):
+        if i == 0:
+            fill_colors.append("rgba(255,215,0,0.15)")   # oro
+        elif i == 1:
+            fill_colors.append("rgba(192,192,192,0.15)") # plata
+        elif i == 2:
+            fill_colors.append("rgba(205,127,50,0.15)")  # bronce
+        else:
+            fill_colors.append("rgba(0,0,0,0)")
+
+    # repetir color en columnas
+    cell_colors = [fill_colors for _ in tabla.columns]
+
+    fig = go.Figure(data=[go.Table(
+        header=dict(
+            values=list(tabla.columns),
+            fill_color="#161b22",
+            font=dict(color="#e6edf3", size=13),
+            align="center"
+        ),
+        cells=dict(
+            values=[tabla[col] for col in tabla.columns],
+            fill_color=cell_colors,
+            font=dict(color="#e6edf3", size=12),
+            align="center",
+            height=28
+        )
+    )])
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=500,
+        margin=dict(l=10, r=10, t=10, b=10)
     )
+
+    st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
     st.markdown("## 📈 Evolución del Ranking")
