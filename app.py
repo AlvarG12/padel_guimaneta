@@ -1070,70 +1070,101 @@ if seccion == "🏆 Clasificación":
         key="vista_ranking"
     )
 
-    fig, ax = plt.subplots(figsize=(14, 6))
-    fig.patch.set_facecolor("#0d1117")
-    ax.set_facecolor("#161b22")
-    colores = plt.cm.tab10.colors
+    fig = go.Figure()
 
     if vista_ranking == "🗓️ Jornada":
+
         for nombre in nombres:
             datos = ranking_jornada[
                 ranking_jornada["nombre"] == nombre
             ].sort_values("hasta_jornada")
 
-            ax.plot(
-                datos["hasta_jornada"],
-                datos["rank"],
-                marker="o",
-                linewidth=2.5,
-                markersize=6,
-                color=mapa_colores[nombre],
-                label=nombre
-            )
+            fig.add_trace(go.Scatter(
+                x=datos["hasta_jornada"],
+                y=datos["rank"],
+                mode="lines+markers",
+                name=nombre,
+                line=dict(width=3),
+                hovertemplate=(
+                    f"{nombre}<br>"
+                    "Jornada: %{x}<br>"
+                    "Posición: %{y}<extra></extra>"
+                )
+            ))
 
-        ax.set_xlabel("Jornada", color="#8b949e")
-        ax.set_xticks(sorted(ranking_jornada["hasta_jornada"].unique()))
+        fig.update_xaxes(
+            tickmode="array",
+            tickvals=sorted(ranking_jornada["hasta_jornada"].unique()),
+            title="Jornada"
+        )
+
         n_jugadores = ranking_jornada["rank"].max()
 
     else:
+
         for nombre in nombres:
             datos = ranking_partido[
                 ranking_partido["nombre"] == nombre
             ].sort_values("hasta_partido")
 
-            ax.plot(
-                datos["hasta_partido"],
-                datos["rank"],
-                marker="o",
-                linewidth=2,
-                markersize=4,
-                color=mapa_colores[nombre],
-                label=nombre
+            fig.add_trace(go.Scatter(
+                x=datos["hasta_partido"],
+                y=datos["rank"],
+                mode="lines+markers",
+                name=nombre,
+                line=dict(width=3),
+                hovertemplate=(
+                    f"{nombre}<br>"
+                    "Partido: %{x}<br>"
+                    "Posición: %{y}<extra></extra>"
+                )
+            ))
+
+        # líneas de jornada
+        jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
+
+        for _, jrow in jornada_cambios.iterrows():
+            fig.add_vline(
+                x=jrow["hasta_partido"] - 0.5,
+                line_dash="dash",
+                line_color="#444"
             )
 
-        # Líneas verticales separando jornadas
-        jornada_cambios = ranking_partido.drop_duplicates("id_jornada").sort_values("hasta_partido")
-        for _, jrow in jornada_cambios.iterrows():
-            ax.axvline(x=jrow["hasta_partido"] - 0.5, color="#30363d", linewidth=1.6, linestyle="--")
-            ax.text(jrow["hasta_partido"] - 0.5, 0.3, f"J{int(jrow['id_jornada'])}",
-                    color="#8b949e", fontsize=7, ha="center")
+            fig.add_annotation(
+                x=jrow["hasta_partido"] - 0.5,
+                y=1,
+                text=f"J{int(jrow['id_jornada'])}",
+                showarrow=False,
+                yref="paper",
+                font=dict(size=10, color="#8b949e")
+            )
 
-        ax.set_xlabel("Nº partido acumulado", color="#8b949e")
-        ax.set_xticks(sorted(ranking_partido["hasta_partido"].unique()))
-        ax.tick_params(axis='x', labelsize=7)
+        fig.update_xaxes(
+            tickmode="array",
+            tickvals=sorted(ranking_partido["hasta_partido"].unique()),
+            title="Nº partido acumulado"
+        )
+
         n_jugadores = ranking_partido["rank"].max()
 
-    ax.invert_yaxis()
-    ax.set_ylabel("Posición", color="#8b949e")
-    ax.tick_params(colors="#8b949e")
-    ax.set_yticks(range(1, int(n_jugadores) + 1))
-    ax.grid(True, linestyle="--", alpha=0.3, color="#30363d")
-    ax.legend(facecolor="#161b22", edgecolor="#30363d", labelcolor="#e6edf3", fontsize=9)
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#30363d")
-    plt.tight_layout()
-    st.pyplot(fig)
-    plt.close()
+    # 🔥 estilo ranking (invertido)
+    fig.update_yaxes(
+        autorange="reversed",
+        title="Posición",
+        tickmode="linear",
+        dtick=1
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=600,
+        hovermode="x unified",
+        legend=dict(
+            bgcolor="rgba(0,0,0,0.3)"
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
