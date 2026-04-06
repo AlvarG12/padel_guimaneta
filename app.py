@@ -1400,13 +1400,15 @@ elif seccion == "👤 Perfil Jugador":
             ranking_partido["rank"].max()
         )
 
+        n_posiciones = len(clasificacion)
+
         fig.update_yaxes(
-            autorange="reversed",
             title="Posición",
             tickmode="linear",
             tick0=1,
             dtick=1,
-            range=[max_rank + 0.5, 0.5]  # invertido manualmente para asegurar ticks
+            range=[n_posiciones + 0.5, 0.5],  # SIEMPRE 1..N aunque el jugador no llegue
+            autorange=False
         )
 
         st.plotly_chart(fig, use_container_width=True)
