@@ -3150,12 +3150,12 @@ elif seccion == "🔐 Admin":
         col1, col2 = st.columns(2)
 
         with col1:
-            jornada_edit = st.number_input("Jornada", value=int(fila["id_jornada"]), key="edit_jornada")
-            fecha_edit = st.text_input("Fecha", value=str(fila.get("fecha", "")), key="edit_fecha")
+            jornada_edit = st.number_input("Jornada", value=int(fila["id_jornada"]), key=f"edit_jornada_{partido_editar}")
+            fecha_edit = st.text_input("Fecha", value=str(fila.get("fecha", "")), key=f"edit_fecha_{partido_editar}")
 
         with col2:
-            sede_edit = st.text_input("Sede", value=str(fila.get("sede", "")), key="edit_sede")
-            comentario_edit = st.text_input("Comentario", value=str(fila.get("comentario", "")), key="edit_comentario")
+            sede_edit = st.text_input("Sede", value=str(fila.get("sede", "")), key=f"edit_sede_{partido_editar}")
+            comentario_edit = st.text_input("Comentario", value=str(fila.get("comentario", "")), key=f"edit_comentario_{partido_editar}")
 
         colr1, colr2 = st.columns(2)
 
@@ -3165,7 +3165,7 @@ elif seccion == "🔐 Admin":
                 min_value=0,
                 max_value=2,
                 value=int(fila["juegos_equipo1"]),
-                key="edit_score1"
+                key=f"edit_score1_{partido_editar}"
             )
 
         with colr2:
@@ -3174,7 +3174,7 @@ elif seccion == "🔐 Admin":
                 min_value=0,
                 max_value=2,
                 value=int(fila["juegos_equipo2"]),
-                key="edit_score2"
+                key=f"edit_score2_{partido_editar}"
             )
 
         confirmar_edit = st.checkbox("⚠️ Confirmo que quiero editar este partido")
