@@ -3102,3 +3102,123 @@ elif seccion == "🔐 Admin":
 
         except Exception as e:
             st.error(f"❌ Error al borrar: {e}")
+
+    st.divider()
+
+    # EDITAR PARTIDO
+    st.markdown("### ✏️ Editar partido")
+
+    partidos_df = partidos.copy()
+
+    # ───── selector de temporada ─────
+    temporadas = sorted(partidos_df["temporada"].unique()) if "temporada" in partidos_df.columns else ["25_26"]
+
+    temporada_edit = st.selectbox(
+        "Selecciona temporada (editar)",
+        temporadas,
+        key="edit_temp"
+    )
+
+    # filtrar
+    if "temporada" in partidos_df.columns:
+        partidos_filtrados = partidos_df[partidos_df["temporada"] == temporada_edit].copy()
+    else:
+        partidos_filtrados = partidos_df.copy()
+
+    partidos_filtrados = partidos_filtrados.sort_values("id_partido")
+
+    lista_partidos = partidos_filtrados["id_partido"].tolist()
+
+    partido_editar = st.selectbox(
+        "Selecciona partido a editar",
+        lista_partidos,
+        key="edit_partido"
+    )
+
+    # 🔍 preview
+    preview = partidos_filtrados[partidos_filtrados["id_partido"] == partido_editar]
+
+    st.markdown("#### 👀 Partido actual")
+    st.dataframe(preview)
+
+    if not preview.empty:
+
+        fila = preview.iloc[0]
+
+        st.markdown("#### ✏️ Editar datos")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            jornada_edit = st.number_input("Jornada", value=int(fila["id_jornada"]), key="edit_jornada")
+            fecha_edit = st.text_input("Fecha", value=str(fila.get("fecha", "")), key="edit_fecha")
+
+        with col2:
+            sede_edit = st.text_input("Sede", value=str(fila.get("sede", "")), key="edit_sede")
+            comentario_edit = st.text_input("Comentario", value=str(fila.get("comentario", "")), key="edit_comentario")
+
+        colr1, colr2 = st.columns(2)
+
+        with colr1:
+            score1_edit = st.number_input(
+                "Juegos Equipo 1",
+                min_value=0,
+                max_value=2,
+                value=int(fila["juegos_equipo1"]),
+                key="edit_score1"
+            )
+
+        with colr2:
+            score2_edit = st.number_input(
+                "Juegos Equipo 2",
+                min_value=0,
+                max_value=2,
+                value=int(fila["juegos_equipo2"]),
+                key="edit_score2"
+            )
+
+        confirmar_edit = st.checkbox("⚠️ Confirmo que quiero editar este partido")
+
+        if st.button("💾 Guardar cambios") and confirmar_edit:
+
+            try:
+                partidos = pd.read_csv("data/partidos_25_26.csv")
+                pj = pd.read_csv("data/partido_jugadores_25_26.csv")
+
+                # ganador recalculado
+                ganador = 1 if score1_edit > score2_edit else 2
+
+                # actualizar partido
+                mask = partidos["id_partido"] == partido_editar
+
+                partidos.loc[mask, "id_jornada"] = jornada_edit
+                partidos.loc[mask, "fecha"] = fecha_edit
+                partidos.loc[mask, "sede"] = sede_edit
+                partidos.loc[mask, "comentario"] = comentario_edit
+                partidos.loc[mask, "juegos_equipo1"] = score1_edit
+                partidos.loc[mask, "juegos_equipo2"] = score2_edit
+                partidos.loc[mask, "equipo_ganador"] = ganador
+
+                # guardar
+                partidos_csv = partidos.to_csv(index=False)
+                pj_csv = pj.to_csv(index=False)
+
+                subir_a_github(
+                    "data/partidos_25_26.csv",
+                    partidos_csv,
+                    f"✏️ Editado partido {partido_editar}"
+                )
+
+                subir_a_github(
+                    "data/partido_jugadores_25_26.csv",
+                    pj_csv,
+                    f"✏️ Editado partido {partido_editar}"
+                )
+
+                st.success(f"✅ Partido {partido_editar} actualizado")
+
+                st.cache_data.clear()
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Error al editar: {e}")
