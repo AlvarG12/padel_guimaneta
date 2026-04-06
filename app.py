@@ -9,6 +9,7 @@ import os
 import unicodedata
 import requests
 import base64
+import plotly.express as px
 
 # 🔤 Quitar acentos
 def quitar_acentos(texto):
@@ -1575,26 +1576,63 @@ elif seccion == "⚔️ Enfrentamientos":
  
     with tab2:
         if not df_enf.empty:
+
             jugadores_unicos = nombres
-            matriz = pd.DataFrame(0.0, index=jugadores_unicos, columns=jugadores_unicos)
+
+            # matriz de porcentajes
+            matriz_pct = pd.DataFrame(np.nan, index=jugadores_unicos, columns=jugadores_unicos)
+
             for _, r in df_enf.iterrows():
                 j1n, j2n = r["jugador1"], r["jugador2"]
-                if j1n in matriz.index and j2n in matriz.columns:
-                    matriz.loc[j1n, j2n] = r["victorias_jugador1"]
-                    matriz.loc[j2n, j1n] = r["victorias_jugador2"]
-            np.fill_diagonal(matriz.values, np.nan)
- 
-            fig, ax = plt.subplots(figsize=(10, 8))
-            fig.patch.set_facecolor("#0d1117")
-            ax.set_facecolor("#161b22")
-            sns.heatmap(matriz, annot=True, fmt=".0f", cmap="RdYlGn",
-                        ax=ax, linewidths=0.5, linecolor="#0d1117",
-                        annot_kws={"size": 12, "color": "white"})
-            ax.set_title("Victorias (fila vs columna)", color="#e6edf3", pad=15)
-            ax.tick_params(colors="#e6edf3")
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close()
+
+                if j1n in matriz_pct.index and j2n in matriz_pct.columns:
+
+                    total = r["partidos_totales"]
+
+                    if total > 0:
+                        pct_j1 = r["victorias_jugador1"] / total * 100
+                        pct_j2 = r["victorias_jugador2"] / total * 100
+                    else:
+                        pct_j1, pct_j2 = 0, 0
+
+                    matriz_pct.loc[j1n, j2n] = pct_j1
+                    matriz_pct.loc[j2n, j1n] = pct_j2
+
+            # quitar diagonal
+            for i in range(len(matriz_pct)):
+                matriz_pct.iat[i, i] = np.nan
+
+            # convertir a formato largo para plotly
+            df_plot = matriz_pct.reset_index().melt(id_vars="index")
+            df_plot.columns = ["Jugador 1", "Jugador 2", "% Victorias"]
+
+            # heatmap interactivo
+            fig = px.density_heatmap(
+                df_plot,
+                x="Jugador 2",
+                y="Jugador 1",
+                z="% Victorias",
+                color_continuous_scale="RdYlGn",
+                text_auto=".1f"
+            )
+
+            fig.update_layout(
+                title="🔥 % de victorias (fila vs columna)",
+                plot_bgcolor="#0d1117",
+                paper_bgcolor="#0d1117",
+                font=dict(color="white"),
+                xaxis_title="",
+                yaxis_title="",
+                height=700
+            )
+
+            fig.update_traces(
+                hovertemplate=
+                "<b>%{y}</b> vs <b>%{x}</b><br>" +
+                "Winrate: <b>%{z:.1f}%</b><extra></extra>"
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: PAREJAS
