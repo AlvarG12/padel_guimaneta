@@ -9,6 +9,7 @@ import os
 import unicodedata
 import requests
 import base64
+import plotly.express as px
 
 # 🔤 Quitar acentos
 def quitar_acentos(texto):
@@ -1575,8 +1576,6 @@ elif seccion == "⚔️ Enfrentamientos":
  
     with tab2:
         if not df_enf.empty:
-
-            import plotly.express as px
 
             jugadores_unicos = nombres
 
