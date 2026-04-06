@@ -1344,8 +1344,9 @@ elif seccion == "👤 Perfil Jugador":
 
         fig = go.Figure()
 
-        if modo_rank == "🗓️ Jornada":
+        max_rank = max(ranking_jornada["rank"].max(), ranking_partido["rank"].max())
 
+        if modo_rank == "🗓️ Jornada":
             datos = ranking_jornada[
                 ranking_jornada["nombre"] == nombre_sel
             ].sort_values("hasta_jornada")
@@ -1367,7 +1368,6 @@ elif seccion == "👤 Perfil Jugador":
             fig.update_xaxes(title="Jornada")
 
         else:
-
             datos = ranking_partido[
                 ranking_partido["nombre"] == nombre_sel
             ].sort_values("hasta_partido")
@@ -1388,10 +1388,12 @@ elif seccion == "👤 Perfil Jugador":
 
             fig.update_xaxes(title="Partido")
 
+        # Fijar eje Y desde 1 hasta max_rank + padding
         fig.update_yaxes(
             autorange="reversed",
             title="Posición",
-            dtick=1
+            dtick=1,  # mostrar todos los números
+            range=[0.5, max_rank + 0.5]  # padding arriba y abajo
         )
 
         fig.update_layout(
