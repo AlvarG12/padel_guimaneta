@@ -3177,39 +3177,6 @@ elif seccion == "🔐 Admin":
                 key=f"edit_score2_{partido_editar}"
             )
 
-        st.markdown("#### 👥 Editar jugadores")
-
-        pj = pd.read_csv("data/partido_jugadores_25_26.csv")
-        jugadores_df = pd.read_csv("data/jugadores.csv")
-
-        mapa_id_nombre = dict(zip(jugadores_df["id_jugador"], jugadores_df["nombre"]))
-        mapa_nombre_id = dict(zip(jugadores_df["nombre"], jugadores_df["id_jugador"]))
-
-        pj_partido = pj[pj["id_partido"] == partido_editar]
-
-        eq1_ids = pj_partido[pj_partido["equipo"] == 1]["id_jugador"].tolist()
-        eq2_ids = pj_partido[pj_partido["equipo"] == 2]["id_jugador"].tolist()
-
-        eq1_nombres = [mapa_id_nombre.get(i, "") for i in eq1_ids]
-        eq2_nombres = [mapa_id_nombre.get(i, "") for i in eq2_ids]
-
-        colj1, colj2 = st.columns(2)
-
-        with colj1:
-            j1_edit = st.selectbox("Jugador 1 (Equipo 1)", nombres, index=nombres.index(eq1_nombres[0]) if eq1_nombres else 0, key=f"edit_j1_{partido_editar}")
-            j2_edit = st.selectbox("Jugador 2 (Equipo 1)", [n for n in nombres if n != j1_edit],
-                                index=0 if len(eq1_nombres) < 2 else [n for n in nombres if n != j1_edit].index(eq1_nombres[1]),
-                                key=f"edit_j2_{partido_editar}")
-
-        with colj2:
-            j3_edit = st.selectbox("Jugador 3 (Equipo 2)", [n for n in nombres if n not in [j1_edit, j2_edit]],
-                                index=0 if len(eq2_nombres) < 1 else [n for n in nombres if n not in [j1_edit, j2_edit]].index(eq2_nombres[0]),
-                                key=f"edit_j3_{partido_editar}")
-
-            j4_edit = st.selectbox("Jugador 4 (Equipo 2)", [n for n in nombres if n not in [j1_edit, j2_edit, j3_edit]],
-                                index=0 if len(eq2_nombres) < 2 else [n for n in nombres if n not in [j1_edit, j2_edit, j3_edit]].index(eq2_nombres[1]),
-                                key=f"edit_j4_{partido_editar}")
-
         confirmar_edit = st.checkbox("⚠️ Confirmo que quiero editar este partido")
 
         if st.button("💾 Guardar cambios") and confirmar_edit:
@@ -3218,6 +3185,7 @@ elif seccion == "🔐 Admin":
                 partidos = pd.read_csv("data/partidos_25_26.csv")
                 pj = pd.read_csv("data/partido_jugadores_25_26.csv")
 
+                # ganador recalculado
                 ganador = 1 if score1_edit > score2_edit else 2
 
                 # actualizar partido
@@ -3230,18 +3198,6 @@ elif seccion == "🔐 Admin":
                 partidos.loc[mask, "juegos_equipo1"] = score1_edit
                 partidos.loc[mask, "juegos_equipo2"] = score2_edit
                 partidos.loc[mask, "equipo_ganador"] = ganador
-
-                # 🔥 actualizar jugadores (borrar antiguos + meter nuevos)
-                pj = pj[pj["id_partido"] != partido_editar]
-
-                nuevos_pj = [
-                    {"id_partido": partido_editar, "id_jugador": mapa_nombre_id[j1_edit], "equipo": 1},
-                    {"id_partido": partido_editar, "id_jugador": mapa_nombre_id[j2_edit], "equipo": 1},
-                    {"id_partido": partido_editar, "id_jugador": mapa_nombre_id[j3_edit], "equipo": 2},
-                    {"id_partido": partido_editar, "id_jugador": mapa_nombre_id[j4_edit], "equipo": 2},
-                ]
-
-                pj = pd.concat([pj, pd.DataFrame(nuevos_pj)], ignore_index=True)
 
                 # guardar
                 partidos_csv = partidos.to_csv(index=False)
@@ -3256,7 +3212,7 @@ elif seccion == "🔐 Admin":
                 subir_a_github(
                     "data/partido_jugadores_25_26.csv",
                     pj_csv,
-                    f"✏️ Editado jugadores partido {partido_editar}"
+                    f"✏️ Editado partido {partido_editar}"
                 )
 
                 st.success(f"✅ Partido {partido_editar} actualizado")
