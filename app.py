@@ -3036,7 +3036,7 @@ elif seccion == "🔐 Admin":
     else:
         partidos_filtrados = partidos_df.copy()
 
-    partidos_filtrados = partidos_filtrados.sort_values("id_partido")
+    partidos_filtrados = partidos_filtrados.sort_values("id_partido", ascending=False)
 
     lista_partidos = partidos_filtrados["id_partido"].tolist()
 
@@ -3125,7 +3125,7 @@ elif seccion == "🔐 Admin":
     else:
         partidos_filtrados = partidos_df.copy()
 
-    partidos_filtrados = partidos_filtrados.sort_values("id_partido")
+    partidos_filtrados = partidos_filtrados.sort_values("id_partido", ascending=False)
 
     lista_partidos = partidos_filtrados["id_partido"].tolist()
 
