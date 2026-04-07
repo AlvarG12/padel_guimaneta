@@ -11,6 +11,7 @@ import requests
 import base64
 import plotly.express as px
 import plotly.graph_objects as go
+from groq import Groq
 
 # 🔤 Quitar acentos
 def quitar_acentos(texto):
@@ -930,6 +931,7 @@ df_rachas_v, df_rachas_d = calcular_rachas_historicas(df)
 ranking_partido = calcular_ranking_por_partido(df)
 nombres = ordenar_nombres(df["nombre"].unique())
 mapa_colores = crear_mapa_colores(nombres)
+client = Groq(api_key=st.secrets["groq_api_key"])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN: CLASIFICACIÓN
@@ -3177,3 +3179,86 @@ elif seccion == "🔐 Admin":
 
         except Exception as e:
             st.error(f"❌ Error al borrar: {e}")
+
+elif seccion == "💬 Chatbot":
+
+    st.markdown("## 💬 Asistente de la Liga")
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # mostrar historial
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    # input usuario
+    if prompt := st.chat_input("Pregunta sobre la liga..."):
+
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        contexto = ""
+
+        pregunta = prompt.lower()
+
+        # ranking
+        if "clasificación" in pregunta or "ranking" in pregunta:
+            contexto = clasificacion.head(10).to_string()
+
+        # jugador específico
+        else:
+            for nombre in nombres:
+                if nombre.lower() in pregunta:
+                    stats = clasificacion[clasificacion["nombre"] == nombre]
+                    contexto = stats.to_string()
+
+                    # últimos partidos
+                    ultimos = ranking_partido[
+                        ranking_partido["nombre"] == nombre
+                    ].tail(5)
+
+                    contexto += "\n\nÚLTIMOS PARTIDOS:\n" + ultimos.to_string()
+                    break
+
+        # parejas
+        if "pareja" in pregunta:
+            contexto = df_parejas.head(10).to_string()
+
+        with st.chat_message("assistant"):
+            with st.spinner("Pensando..."):
+
+                completion = client.chat.completions.create(
+                    model="llama3-70b-8192",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "Eres un analista experto de una liga de pádel. "
+                                "Responde de forma clara, breve y deportiva. "
+                                "Usa SOLO los datos proporcionados."
+                            )
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""
+PREGUNTA:
+{prompt}
+
+DATOS:
+{contexto}
+"""
+                        }
+                    ],
+                    temperature=0.4
+                )
+
+                respuesta = completion.choices[0].message.content
+
+                st.markdown(respuesta)
+
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": respuesta}
+                )
