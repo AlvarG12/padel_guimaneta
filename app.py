@@ -907,6 +907,7 @@ with st.sidebar:
             "💻 Predictor",
             "🧮 Calculadora",
             "🔍 Buscador",
+            "💬 ChatBot",
             "🔐 Admin"
         ],
         label_visibility="collapsed"
@@ -3180,7 +3181,7 @@ elif seccion == "🔐 Admin":
         except Exception as e:
             st.error(f"❌ Error al borrar: {e}")
 
-elif seccion == "💬 Chatbot":
+elif seccion == "💬 ChatBot":
 
     st.markdown("## 💬 Asistente de la Liga")
 
