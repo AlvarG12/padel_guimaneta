@@ -3228,11 +3228,14 @@ elif seccion == "💬 ChatBot":
         if "pareja" in pregunta:
             contexto = df_parejas.head(10).to_string()
 
+        if "clasificación" in pregunta and "jornadas" in pregunta:
+            contexto += "\n\nIMPORTANTE: estima evolución basada en forma reciente, no inventes datos futuros exactos."
+
         with st.chat_message("assistant"):
             with st.spinner("Pensando..."):
 
                 completion = client.chat.completions.create(
-                    model="llama3-70b-8192",
+                    model="llama3-8b-8192",
                     messages=[
                         {
                             "role": "system",
