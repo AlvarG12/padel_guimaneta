@@ -3185,10 +3185,11 @@ elif seccion == "💬 ChatBot":
 
     st.markdown("## 💬 Asistente de la Liga")
 
+    # historial
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # mostrar historial
+    # mostrar chat
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
@@ -3201,65 +3202,96 @@ elif seccion == "💬 ChatBot":
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        contexto = ""
+        # ─────────────────────────────
+        # 🧠 DETECCIÓN DE CONTEXTO
+        # ─────────────────────────────
 
         pregunta = prompt.lower()
+        contexto = ""
 
-        # ranking
+        # 🔥 LIMITE DE SEGURIDAD
+        prompt_limpio = prompt[:500]
+
+        # ── CLASIFICACIÓN ──
         if "clasificación" in pregunta or "ranking" in pregunta:
-            contexto = clasificacion.head(10).to_string()
 
-        # jugador específico
+            df = clasificacion.head(10)[
+                ["nombre", "victorias", "derrotas", "porcentaje_victorias"]
+            ].copy()
+
+            df = df.fillna(0)
+            contexto = df.to_string(index=False)
+
+        # ── PAREJAS ──
+        elif "pareja" in pregunta:
+
+            contexto = df_parejas.head(10).to_string(index=False)
+
+        # ── JUGADOR ESPECÍFICO ──
         else:
             for nombre in nombres:
                 if nombre.lower() in pregunta:
-                    stats = clasificacion[clasificacion["nombre"] == nombre]
-                    contexto = stats.to_string()
 
-                    # últimos partidos
+                    stats = clasificacion[clasificacion["nombre"] == nombre]
+
                     ultimos = ranking_partido[
                         ranking_partido["nombre"] == nombre
                     ].tail(5)
 
-                    contexto += "\n\nÚLTIMOS PARTIDOS:\n" + ultimos.to_string()
+                    contexto = stats.to_string(index=False)
+
+                    contexto += "\n\nÚLTIMOS PARTIDOS:\n"
+                    contexto += ultimos.to_string(index=False)
                     break
 
-        # parejas
-        if "pareja" in pregunta:
-            contexto = df_parejas.head(10).to_string()
+        # ── LIMPIEZA FINAL (CRÍTICO PARA GROQ) ──
+        contexto = str(contexto)
+        contexto = contexto.replace("nan", "0").replace("None", "")
+        contexto = contexto[:2500]
 
-        if "clasificación" in pregunta and "jornadas" in pregunta:
-            contexto += "\n\nIMPORTANTE: estima evolución basada en forma reciente, no inventes datos futuros exactos."
+        # ── PREDICCIÓN (MEJORA INTELIGENTE) ──
+        if "jornadas" in pregunta:
+            contexto += "\n\nIMPORTANTE: Estima evolución basada en forma reciente. No inventes resultados exactos futuros."
+
+        # ─────────────────────────────
+        # 🤖 LLAMADA A GROQ
+        # ─────────────────────────────
 
         with st.chat_message("assistant"):
             with st.spinner("Pensando..."):
 
-                completion = client.chat.completions.create(
-                    model="llama3-8b-8192",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "Eres un analista experto de una liga de pádel. "
-                                "Responde de forma clara, breve y deportiva. "
-                                "Usa SOLO los datos proporcionados."
-                            )
-                        },
-                        {
-                            "role": "user",
-                            "content": f"""
+                try:
+                    completion = client.chat.completions.create(
+                        model="llama3-8b-8192",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "Eres un analista experto de una liga de pádel. "
+                                    "Responde de forma clara, natural y deportiva. "
+                                    "Usa SOLO los datos proporcionados. "
+                                    "Si no hay datos suficientes, dilo."
+                                )
+                            },
+                            {
+                                "role": "user",
+                                "content": f"""
 PREGUNTA:
-{prompt}
+{prompt_limpio}
 
 DATOS:
 {contexto}
 """
-                        }
-                    ],
-                    temperature=0.4
-                )
+                            }
+                        ],
+                        temperature=0.4,
+                        max_tokens=600
+                    )
 
-                respuesta = completion.choices[0].message.content
+                    respuesta = completion.choices[0].message.content
+
+                except Exception as e:
+                    respuesta = f"⚠️ Error en el chatbot: {str(e)}"
 
                 st.markdown(respuesta)
 
