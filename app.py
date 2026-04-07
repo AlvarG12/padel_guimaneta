@@ -3182,7 +3182,7 @@ elif seccion == "🔐 Admin":
             st.error(f"❌ Error al borrar: {e}")
 
 # Y luego la sección:
-elif seccion == "💬 Chatbot":
+elif seccion == "💬 ChatBot":
     st.markdown("## 💬 Asistente de la Liga")
     
     st.info("Pregúntame sobre estadísticas, clasificación, enfrentamientos, etc.")
