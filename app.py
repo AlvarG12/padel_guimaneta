@@ -907,7 +907,7 @@ with st.sidebar:
             "💻 Predictor",
             "🧮 Calculadora",
             "🔍 Buscador",
-            "💬 ChatBot",
+            # "💬 ChatBot",
             "🔐 Admin"
         ],
         label_visibility="collapsed"
