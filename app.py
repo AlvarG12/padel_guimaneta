@@ -3181,120 +3181,67 @@ elif seccion == "🔐 Admin":
         except Exception as e:
             st.error(f"❌ Error al borrar: {e}")
 
-elif seccion == "💬 ChatBot":
-
+# Y luego la sección:
+elif seccion == "💬 Chatbot":
     st.markdown("## 💬 Asistente de la Liga")
-
-    # historial
+    
+    st.info("Pregúntame sobre estadísticas, clasificación, enfrentamientos, etc.")
+    
+    # Inicializar historial
     if "messages" not in st.session_state:
         st.session_state.messages = []
-
-    # mostrar chat
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-
-    # input usuario
-    if prompt := st.chat_input("Pregunta sobre la liga..."):
-
+    
+    # Mostrar historial
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # Input del usuario
+    if prompt := st.chat_input("¿Qué quieres saber?"):
+        # Añadir mensaje del usuario
         st.session_state.messages.append({"role": "user", "content": prompt})
-
         with st.chat_message("user"):
             st.markdown(prompt)
+        
+        # Preparar contexto con datos de la liga
+        contexto = f"""
+Eres un asistente experto en la Liga de Pádel Guimaneta. Aquí están los datos actuales:
 
-        # ─────────────────────────────
-        # 🧠 DETECCIÓN DE CONTEXTO
-        # ─────────────────────────────
+CLASIFICACIÓN:
+{clasificacion.to_string()}
 
-        pregunta = prompt.lower()
-        contexto = ""
+MEJORES PAREJAS:
+{df_parejas.head(5).to_string()}
 
-        # 🔥 LIMITE DE SEGURIDAD
-        prompt_limpio = prompt[:500]
+RACHAS ACTIVAS:
+{rachas_activas_df.to_string()}
 
-        # ── CLASIFICACIÓN ──
-        if "clasificación" in pregunta or "ranking" in pregunta:
-
-            df = clasificacion.head(10)[
-                ["nombre", "victorias", "derrotas", "porcentaje_victorias"]
-            ].copy()
-
-            df = df.fillna(0)
-            contexto = df.to_string(index=False)
-
-        # ── PAREJAS ──
-        elif "pareja" in pregunta:
-
-            contexto = df_parejas.head(10).to_string(index=False)
-
-        # ── JUGADOR ESPECÍFICO ──
-        else:
-            for nombre in nombres:
-                if nombre.lower() in pregunta:
-
-                    stats = clasificacion[clasificacion["nombre"] == nombre]
-
-                    ultimos = ranking_partido[
-                        ranking_partido["nombre"] == nombre
-                    ].tail(5)
-
-                    contexto = stats.to_string(index=False)
-
-                    contexto += "\n\nÚLTIMOS PARTIDOS:\n"
-                    contexto += ultimos.to_string(index=False)
-                    break
-
-        # ── LIMPIEZA FINAL (CRÍTICO PARA GROQ) ──
-        contexto = str(contexto)
-        contexto = contexto.replace("nan", "0").replace("None", "")
-        contexto = contexto[:2500]
-
-        # ── PREDICCIÓN (MEJORA INTELIGENTE) ──
-        if "jornadas" in pregunta:
-            contexto += "\n\nIMPORTANTE: Estima evolución basada en forma reciente. No inventes resultados exactos futuros."
-
-        # ─────────────────────────────
-        # 🤖 LLAMADA A GROQ
-        # ─────────────────────────────
-
+Responde de forma concisa y amigable. Si te preguntan por datos específicos, usa la información proporcionada.
+"""
+        
+        # Llamar a Claude API
         with st.chat_message("assistant"):
             with st.spinner("Pensando..."):
-
                 try:
-                    completion = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": (
-                                    "Eres un analista experto de una liga de pádel. "
-                                    "Responde de forma clara, natural y deportiva. "
-                                    "Usa SOLO los datos proporcionados. "
-                                    "Si no hay datos suficientes, dilo."
-                                )
-                            },
-                            {
-                                "role": "user",
-                                "content": f"""
-PREGUNTA:
-{prompt_limpio}
-
-DATOS:
-{contexto}
-"""
-                            }
-                        ],
-                        temperature=0.4,
-                        max_tokens=600
+                    response = requests.post(
+                        "https://api.anthropic.com/v1/messages",
+                        headers={
+                            "x-api-key": st.secrets["anthropic_api_key"],
+                            "anthropic-version": "2023-06-01",
+                            "content-type": "application/json"
+                        },
+                        json={
+                            "model": "claude-3-5-sonnet-20241022",
+                            "max_tokens": 1024,
+                            "messages": [
+                                {"role": "user", "content": contexto + "\n\nPregunta: " + prompt}
+                            ]
+                        }
                     )
-
-                    respuesta = completion.choices[0].message.content
-
+                    
+                    respuesta = response.json()["content"][0]["text"]
+                    st.markdown(respuesta)
+                    st.session_state.messages.append({"role": "assistant", "content": respuesta})
+                    
                 except Exception as e:
-                    respuesta = f"⚠️ Error en el chatbot: {str(e)}"
-
-                st.markdown(respuesta)
-
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": respuesta}
-                )
+                    st.error(f"Error: {e}")
