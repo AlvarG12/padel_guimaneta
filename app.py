@@ -409,6 +409,81 @@ def calcular_rachas_historicas(df):
 
     return df_v, df_d
 
+@st.cache_data
+def calcular_estadisticas_extremas(df):
+    """Récords y estadísticas destacadas a nivel de jornada (no acumuladas)."""
+    filas_ganador, filas_ultimo, filas_detalle = [], [], []
+
+    for j in sorted(df["id_jornada"].unique()):
+        df_j = df[df["id_jornada"] == j]
+        clas_j = calcular_clasificacion(df_j)
+
+        if clas_j.empty:
+            continue
+
+        ganador = clas_j.iloc[0]
+        ultimo = clas_j.iloc[-1]
+
+        filas_ganador.append({"id_jornada": j, "nombre": ganador["nombre"]})
+        filas_ultimo.append({"id_jornada": j, "nombre": ultimo["nombre"]})
+
+        for _, row in clas_j.iterrows():
+            filas_detalle.append({
+                "id_jornada": j,
+                "nombre": row["nombre"],
+                "victorias": row["victorias"],
+                "derrotas": row["derrotas"],
+                "partidos_jugados": row["partidos_jugados"],
+                "porcentaje_victorias": row["porcentaje_victorias"],
+                "diferencia_juegos": row["diferencia_juegos"],
+            })
+
+    df_ganador = pd.DataFrame(filas_ganador)
+    df_ultimo = pd.DataFrame(filas_ultimo)
+    df_detalle = pd.DataFrame(filas_detalle)
+
+    conteo_ganador = df_ganador.groupby("nombre").size().reset_index(name="veces").sort_values("veces", ascending=False)
+    conteo_ultimo = df_ultimo.groupby("nombre").size().reset_index(name="veces").sort_values("veces", ascending=False)
+
+    return {
+        "top_ganador_jornada": conteo_ganador,
+        "top_ultimo_jornada": conteo_ultimo,
+        "max_victorias_jornada": df_detalle.sort_values("victorias", ascending=False),
+        "max_derrotas_jornada": df_detalle.sort_values("derrotas", ascending=False),
+        "max_pj_jornada": df_detalle.sort_values("partidos_jugados", ascending=False),
+        "min_pj_jornada": df_detalle.sort_values("partidos_jugados", ascending=True),
+        "mejor_pct_jornada": df_detalle[df_detalle["partidos_jugados"] >= 2].sort_values(
+            by=["porcentaje_victorias", "partidos_jugados"], ascending=[False, False]
+        ),
+        "max_diff_juegos_jornada": df_detalle.sort_values("diferencia_juegos", ascending=False),
+    }
+
+
+def _top_valor(df_ordenado, columna, ascending=False):
+    if df_ordenado.empty:
+        return None, pd.DataFrame()
+    valor_top = df_ordenado[columna].min() if ascending else df_ordenado[columna].max()
+    empatados = df_ordenado[df_ordenado[columna] == valor_top]
+    return valor_top, empatados
+
+
+def _lista_empatados(empatados, limite=4):
+    partes = [f"{r['nombre']} (J{int(r['id_jornada'])})" for _, r in empatados.head(limite).iterrows()]
+    extra = len(empatados) - limite
+    texto = " · ".join(partes)
+    if extra > 0:
+        texto += f" y {extra} más"
+    return texto
+
+
+def _lista_empatados_conteo(empatados, limite=4):
+    partes = [f"{r['nombre']}" for _, r in empatados.head(limite).iterrows()]
+    extra = len(empatados) - limite
+    texto = " · ".join(partes)
+    if extra > 0:
+        texto += f" y {extra} más"
+    return texto
+
 # @st.cache_data
 # def construir_features_ml(df_hist):
 #     """
@@ -930,6 +1005,7 @@ df_parejas = calcular_parejas(df)
 rachas_activas_df, rachas_max_v_df, rachas_max_d_df = calcular_rachas(df)
 df_rachas_v, df_rachas_d = calcular_rachas_historicas(df)
 ranking_partido = calcular_ranking_por_partido(df)
+stats_extremas = calcular_estadisticas_extremas(df)
 nombres = ordenar_nombres(df["nombre"].unique())
 mapa_colores = crear_mapa_colores(nombres)
 client = Groq(api_key=st.secrets["groq_api_key"])
@@ -1147,6 +1223,67 @@ if seccion == "🏆 Clasificación":
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+    st.markdown("## 📊 Estadísticas de Jornada (Récords)")
+
+    valor, emp = _top_valor(stats_extremas["top_ganador_jornada"], "veces")
+    tarjeta_1 = ("🥇", "#FFD700", "Más veces ganador de una jornada",
+                 f"{valor} veces" if valor else "N/A",
+                 _lista_empatados_conteo(emp) if valor else "-")
+
+    valor, emp = _top_valor(stats_extremas["top_ultimo_jornada"], "veces")
+    tarjeta_2 = ("🥄", "#8b949e", "Más veces último de una jornada",
+                 f"{valor} veces" if valor else "N/A",
+                 _lista_empatados_conteo(emp) if valor else "-")
+
+    valor, emp = _top_valor(stats_extremas["max_victorias_jornada"], "victorias")
+    tarjeta_3 = ("🔥", "#238636", "Más victorias en una jornada",
+                 f"{int(valor)} victorias" if valor is not None else "N/A",
+                 _lista_empatados(emp) if valor is not None else "-")
+
+    valor, emp = _top_valor(stats_extremas["max_derrotas_jornada"], "derrotas")
+    tarjeta_4 = ("💀", "#da3633", "Más derrotas en una jornada",
+                 f"{int(valor)} derrotas" if valor is not None else "N/A",
+                 _lista_empatados(emp) if valor is not None else "-")
+
+    valor, emp = _top_valor(stats_extremas["max_pj_jornada"], "partidos_jugados")
+    tarjeta_5 = ("🏃", "#1f6feb", "Más partidos jugados en una jornada",
+                 f"{int(valor)} partidos" if valor is not None else "N/A",
+                 _lista_empatados(emp) if valor is not None else "-")
+
+    valor, emp = _top_valor(stats_extremas["min_pj_jornada"], "partidos_jugados", ascending=True)
+    tarjeta_6 = ("🐢", "#d29922", "Menos partidos jugados en una jornada",
+                 f"{int(valor)} partido(s)" if valor is not None else "N/A",
+                 _lista_empatados(emp) if valor is not None else "-")
+
+    valor, emp = _top_valor(stats_extremas["mejor_pct_jornada"], "porcentaje_victorias")
+    tarjeta_7 = ("💯", "#3fb950", "Mejor % de victorias en una jornada",
+                 f"{valor:.1f}%" if valor is not None else "N/A",
+                 _lista_empatados(emp) if valor is not None else "- (mín. 2 partidos)")
+
+    valor, emp = _top_valor(stats_extremas["max_diff_juegos_jornada"], "diferencia_juegos")
+    tarjeta_8 = ("🎯", "#a371f7", "Mayor diferencia de juegos en una jornada",
+                 f"+{int(valor)}" if valor is not None else "N/A",
+                 _lista_empatados(emp) if valor is not None else "-")
+
+    tarjetas = [tarjeta_1, tarjeta_2, tarjeta_3, tarjeta_4, tarjeta_5, tarjeta_6, tarjeta_7, tarjeta_8]
+
+    html_tarjetas = ""
+    for icono, color, titulo, valor_txt, detalle_txt in tarjetas:
+        html_tarjetas += f"""
+        <div style="background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; border-left:5px solid {color};">
+            <div style="color:#8b949e; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px;">{icono} {titulo}</div>
+            <div style="color:#ffffff; font-size:1.3rem; font-weight:700; margin-top:4px;">{valor_txt}</div>
+            <div style="color:#8b949e; font-size:0.78rem; margin-top:2px;">{detalle_txt}</div>
+        </div>
+        """
+
+    st.markdown(f"""
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+        {html_tarjetas}
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
