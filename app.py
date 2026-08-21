@@ -1269,21 +1269,24 @@ if seccion == "🏆 Clasificación":
 
     tarjetas = [tarjeta_1, tarjeta_2, tarjeta_3, tarjeta_4, tarjeta_5, tarjeta_6, tarjeta_7, tarjeta_8]
 
-    html_tarjetas = ""
-    for icono, color, titulo, valor_txt, detalle_txt in tarjetas:
-        html_tarjetas += f"""
-        <div style="background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px; border-left:5px solid {color};">
-            <div style="color:#8b949e; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px;">{icono} {titulo}</div>
-            <div style="color:#ffffff; font-size:1.3rem; font-weight:700; margin-top:4px;">{valor_txt}</div>
-            <div style="color:#8b949e; font-size:0.78rem; margin-top:2px;">{detalle_txt}</div>
-        </div>
-        """
+    def _tarjeta_html(icono, color, titulo, valor_txt, detalle_txt):
+        return (
+            f'<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;'
+            f'padding:14px;border-left:5px solid {color};">'
+            f'<div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;">{icono} {titulo}</div>'
+            f'<div style="color:#ffffff;font-size:1.3rem;font-weight:700;margin-top:4px;">{valor_txt}</div>'
+            f'<div style="color:#8b949e;font-size:0.78rem;margin-top:2px;">{detalle_txt}</div>'
+            f'</div>'
+        )
 
-    st.markdown(f"""
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
-        {html_tarjetas}
-    </div>
-    """, unsafe_allow_html=True)
+    html_tarjetas = "".join(_tarjeta_html(*t) for t in tarjetas)
+
+    st.markdown(
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">'
+        + html_tarjetas +
+        '</div>',
+        unsafe_allow_html=True
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
