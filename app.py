@@ -1366,7 +1366,6 @@ elif seccion == "📋 Detalle":
 
     # 🏆 CLASIFICACIÓN DE ESA JORNADA (SOLO ESA JORNADA)
     st.markdown("### 🏆 Clasificación de la jornada")
-    st.caption("🔧 build-check: desempate-alfabetico-v2")
 
     df_jornada_simple = df[df["id_jornada"] == jornada_sel].copy()
 
