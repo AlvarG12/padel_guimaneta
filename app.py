@@ -156,6 +156,9 @@ def calcular_clasificacion(df):
     total_jornadas = df["id_jornada"].nunique()
     clas["jornadas"] = clas["jornadas_participadas"].astype(str) + "/" + str(total_jornadas)
 
+    # Último desempate: orden alfabético (ignorando acentos)
+    clas["_nombre_orden"] = clas["nombre"].apply(lambda x: quitar_acentos(x).lower())
+
     # Orden con desempates en cascada
     clas = clas.sort_values(
         by=[
@@ -163,10 +166,11 @@ def calcular_clasificacion(df):
             "diferencia_juegos",
             "victorias",
             "jornadas_participadas",
-            "juegos_ganados"
+            "juegos_ganados",
+            "_nombre_orden"
         ],
-        ascending=False
-    ).reset_index(drop=True)
+        ascending=[False, False, False, False, False, True]
+    ).drop(columns="_nombre_orden").reset_index(drop=True)
 
     clas.index = clas.index + 1
     return clas
@@ -189,6 +193,9 @@ def calcular_ranking_por_jornada(df):
         clas_j["diferencia_juegos"] = clas_j["juegos_ganados"] - clas_j["juegos_perdidos"]
         clas_j["porcentaje_victorias"] = (clas_j["victorias"] / clas_j["partidos_jugados"] * 100).round(2)
 
+        # Último desempate: orden alfabético (ignorando acentos)
+        clas_j["_nombre_orden"] = clas_j["nombre"].apply(lambda x: quitar_acentos(x).lower())
+
         # Orden con desempates en cascada
         clas_j = clas_j.sort_values(
             by=[
@@ -196,10 +203,11 @@ def calcular_ranking_por_jornada(df):
                 "diferencia_juegos",
                 "victorias",
                 "jornadas_participadas",
-                "juegos_ganados"
+                "juegos_ganados",
+                "_nombre_orden"
             ],
-            ascending=False
-        ).reset_index(drop=True)
+            ascending=[False, False, False, False, False, True]
+        ).drop(columns="_nombre_orden").reset_index(drop=True)
 
         clas_j["rank"] = range(1, len(clas_j) + 1)
         clas_j["hasta_jornada"] = j
@@ -227,9 +235,14 @@ def calcular_ranking_por_partido(df):
         ).reset_index()
         clas["diferencia_juegos"] = clas["juegos_ganados"] - clas["juegos_perdidos"]
         clas["porcentaje_victorias"] = (clas["victorias"] / clas["partidos_jugados"] * 100).round(1)
+
+        # Último desempate: orden alfabético (ignorando acentos)
+        clas["_nombre_orden"] = clas["nombre"].apply(lambda x: quitar_acentos(x).lower())
+
         clas = clas.sort_values(
-            by=["porcentaje_victorias", "diferencia_juegos", "juegos_ganados"], ascending=False
-        )
+            by=["porcentaje_victorias", "diferencia_juegos", "juegos_ganados", "_nombre_orden"],
+            ascending=[False, False, False, True]
+        ).drop(columns="_nombre_orden")
         clas["rank"] = range(1, len(clas) + 1)
         clas["hasta_partido"] = i
         clas["id_jornada"] = partido_row["id_jornada"]
